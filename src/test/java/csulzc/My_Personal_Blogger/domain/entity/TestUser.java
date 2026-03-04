@@ -160,7 +160,7 @@ public class TestUser
         void testMassOperations() {
             long startTime = System.currentTimeMillis();
 
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 user.setId((long) i);
                 user.getId();
@@ -171,7 +171,7 @@ public class TestUser
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
 
-            assertTrue(duration < 100, "10000次操作应该在100ms内完成");
+            assertTrue(duration < 5000, "1000000次操作应该在5000ms内完成");
         }
     }
 }
