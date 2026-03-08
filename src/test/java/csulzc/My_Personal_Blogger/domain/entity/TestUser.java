@@ -5,23 +5,29 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestUser
 {
 
     private User user;
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp()
     {
         user = new User();
+        passwordEncoder = new BCryptPasswordEncoder();
     }
 
     @AfterEach
     void tearDown()
     {
         user = null;
+        passwordEncoder = null;
     }
 
     @Test
@@ -75,6 +81,21 @@ public class TestUser
 
     @Test
     @Order(4)
+    @DisplayName("测试密码哈希值属性")
+    void testPasswordHashProperty()
+    {
+        user.setPlainPassword("LamZising888+++");
+        String encodedPassword = passwordEncoder.encode(user.getPlainPassword());
+
+        user.setPasswordHash(encodedPassword);
+
+        assertNotNull(user.getPasswordHash());
+        assertNotEquals(user.getPlainPassword(), user.getPasswordHash());
+        assertTrue(passwordEncoder.matches(user.getPlainPassword(), user.getPasswordHash()));
+    }
+
+    @Test
+    @Order(5)
     @DisplayName("测试邮箱属性")
     void testEmailProperty()
     {
@@ -88,7 +109,7 @@ public class TestUser
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     @DisplayName("测试展示名属性")
     void testDisplayNameProperty()
     {
@@ -100,7 +121,7 @@ public class TestUser
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     @DisplayName("测试所有属性组合")
     void testAllPropertiesTogether()
     {
@@ -160,7 +181,7 @@ public class TestUser
         void testMassOperations() {
             long startTime = System.currentTimeMillis();
 
-            for (int i = 0; i < 1000000; i++)
+            for (int i = 0; i < 10000000; i++)
             {
                 user.setId((long) i);
                 user.getId();
@@ -171,7 +192,7 @@ public class TestUser
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
 
-            assertTrue(duration < 5000, "1000000次操作应该在5000ms内完成");
+            assertTrue(duration < 2000, "10000000次操作应该在2000ms内完成");
         }
     }
 }

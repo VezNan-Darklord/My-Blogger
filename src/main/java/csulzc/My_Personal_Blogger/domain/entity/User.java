@@ -30,6 +30,14 @@ public class User
     @Column(nullable = false, unique = true)
     private String username;
 
+    @Column(nullable = false, length = 60)
+    private String passwordHash;
+
+    @Transient
+    private String plainPassword;
+
+    private LocalDateTime passwordUpdatedAt = LocalDateTime.now();
+
     @Column(nullable = false, unique = true)
     private String email;
 
