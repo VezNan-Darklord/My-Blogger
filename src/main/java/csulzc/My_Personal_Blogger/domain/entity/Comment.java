@@ -33,5 +33,20 @@ public class Comment {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // TODO: 后续添加与其他类的关联关系（索引关系）
+    // 与其他类的关联关系（索引关系）
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article article;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commenter_id", nullable = false)
+    private User commenter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
+
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL)
+    private List<Comment> replies = new ArrayList<>();
 }

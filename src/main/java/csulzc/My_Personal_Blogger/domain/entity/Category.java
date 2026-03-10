@@ -1,17 +1,11 @@
 package csulzc.My_Personal_Blogger.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.util.Date;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Data
 @NoArgsConstructor
@@ -33,5 +27,19 @@ public class Category {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // TODO: 后续添加与其他类的关联关系（索引关系）
+    // 与其他类的关联关系（索引关系）
+
+    // 1. 多对多：分类和文章的关系
+    @ManyToMany(mappedBy = "categories")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<Article> articles = new HashSet<>();
+
+    // 2. 自关联：分类的层级结构
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_category_id")
+    private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL)
+    private List<Category> subCategories = new ArrayList<>();
 }

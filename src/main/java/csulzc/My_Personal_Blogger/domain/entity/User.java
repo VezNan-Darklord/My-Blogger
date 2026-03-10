@@ -58,5 +58,33 @@ public class User
         ACTIVE, INACTIVE, LOCKED
     }
 
-    // TODO: 后续添加与其他类的关联关系（索引关系）
+    // 与其他类的关联关系（索引关系）
+
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL,
+            orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Article> articles = new ArrayList<> ();
+
+    @OneToMany(mappedBy = "commenter", cascade = CascadeType.ALL,
+            orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Comment> comments = new ArrayList<>();
+
+    // 辅助方法
+
+    public void addArticle(Article article)
+    {
+        articles.add(article);
+        article.setAuthor(this);
+    }
+
+    public void removeArticle(Article article)
+    {
+        articles.remove(article);
+        article.setAuthor(null);
+    }
+
+    public void addComment(Comment comment)
+    {
+        comments.add(comment);
+        comment.setCommenter(this);
+    }
 }
