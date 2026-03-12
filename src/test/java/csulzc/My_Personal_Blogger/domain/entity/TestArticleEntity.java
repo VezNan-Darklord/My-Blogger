@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assumptions.*;
 
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestArticle
+public class TestArticleEntity
 {
     private Article article;
 

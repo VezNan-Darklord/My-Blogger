@@ -2,6 +2,7 @@ package csulzc.My_Personal_Blogger.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -15,27 +16,18 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
+@EqualsAndHashCode(callSuper = true)  // 重要：包含父类字段
+@SuperBuilder  // 使用 @SuperBuilder
 @Table(name = "articles")
-public class Article
+public class Article extends BaseEntity
 {
     // 基础属性
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Column(nullable = false)
     private String title;
 
     private String content = "";
-
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -58,6 +50,8 @@ public class Article
 
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @ToString.Exclude
     private List<Comment> comments = new ArrayList<>();
 
     @ManyToMany
@@ -68,6 +62,7 @@ public class Article
     )
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
     // 辅助方法

@@ -1,10 +1,8 @@
 package csulzc.My_Personal_Blogger.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -16,16 +14,13 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@EqualsAndHashCode(callSuper = true)  // 重要：包含父类字段
+@SuperBuilder  // 使用 @SuperBuilder
 @Entity
 @Table(name = "users")
-public class User
+public class User extends BaseEntity
 {
     // 基础属性
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -43,12 +38,6 @@ public class User
 
     private String displayName;
 
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
@@ -62,10 +51,14 @@ public class User
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @ToString.Exclude
     private List<Article> articles = new ArrayList<> ();
 
     @OneToMany(mappedBy = "commenter", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @ToString.Exclude
     private List<Comment> comments = new ArrayList<>();
 
     // 辅助方法

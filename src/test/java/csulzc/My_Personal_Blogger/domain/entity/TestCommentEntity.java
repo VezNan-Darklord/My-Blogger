@@ -3,11 +3,10 @@ package csulzc.My_Personal_Blogger.domain.entity;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.*;
 
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestComment {
+public class TestCommentEntity {
 
     private Comment comment;
 
