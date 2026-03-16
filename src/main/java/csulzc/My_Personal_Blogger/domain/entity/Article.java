@@ -83,11 +83,6 @@ public class Article extends BaseEntity
             return;
         }
         categories.add(category);
-
-        // 安全地添加双向关系
-        if (category.getArticles() != null && !category.getArticles().contains(this)) {
-            category.getArticles().add(this);
-        }
     }
 
     public void removeCategory(Category category) {

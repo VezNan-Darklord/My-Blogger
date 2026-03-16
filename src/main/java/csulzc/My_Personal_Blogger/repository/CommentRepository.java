@@ -17,11 +17,11 @@ public interface CommentRepository extends BaseRepository<Comment, Long> {
 
     // 1. 查询文章的所有顶级评论（不是回复）
     @Query("SELECT c FROM Comment c WHERE c.article = :article AND c.parentComment IS NULL")
-    Page<Comment> findByArticleAndParentCommentIsNull(Article article, Pageable pageable);
+    Page<Comment> findByArticleAndParentCommentIsNull(@Param("article") Article article, Pageable pageable);
 
     // 2. 查询某个评论的所有回复
     @Query("SELECT c FROM Comment c WHERE c.parentComment = :parent")
-    Page<Comment> findByParentComment(Comment parent, Pageable pageable);
+    Page<Comment> findByParentComment(@Param("parent") Comment parent, Pageable pageable);
 
     // 3. 查询用户的所有评论
     Page<Comment> findByCommenter(User commenter, Pageable pageable);

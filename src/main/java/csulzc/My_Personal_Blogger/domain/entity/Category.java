@@ -17,6 +17,7 @@ import java.util.*;
 @Table(name = "categories")
 public class Category extends BaseEntity {
 
+    @Column(nullable = false, unique = true)
     private String name;
 
     // 与其他类的关联关系（索引关系）
