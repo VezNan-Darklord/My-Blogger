@@ -1,11 +1,9 @@
-package csulzc.My_Personal_Blogger.domain.dto;
+package csulzc.My_Personal_Blogger.api.dto;
 
 import lombok.Data;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import csulzc.My_Personal_Blogger.domain.dto.BaseDTO;
 import csulzc.My_Personal_Blogger.domain.entity.User;
-import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
 

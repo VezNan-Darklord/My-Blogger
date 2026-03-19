@@ -1,4 +1,4 @@
-package csulzc.My_Personal_Blogger.domain.dto;
+package csulzc.My_Personal_Blogger.api.dto;
 
 import lombok.Data;
 import lombok.Builder;
