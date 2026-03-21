@@ -1,8 +1,7 @@
-package csulzc.My_Personal_Blogger.api.dto;
+package csulzc.My_Personal_Blogger.api.dto.user;
 
 import lombok.Data;
 import lombok.Builder;
-import java.time.LocalDateTime;
 import jakarta.validation.constraints.*;
 
 @Data

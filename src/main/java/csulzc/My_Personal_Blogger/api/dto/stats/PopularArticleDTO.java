@@ -1,5 +1,6 @@
-package csulzc.My_Personal_Blogger.api.dto;
+package csulzc.My_Personal_Blogger.api.dto.stats;
 
+import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import lombok.Data;
 import lombok.Builder;
 

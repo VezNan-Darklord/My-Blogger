@@ -1,5 +1,6 @@
-package csulzc.My_Personal_Blogger.api.dto;
+package csulzc.My_Personal_Blogger.api.dto.user;
 
+import csulzc.My_Personal_Blogger.api.dto.common.BaseDTO;
 import lombok.Data;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

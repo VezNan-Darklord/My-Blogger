@@ -1,4 +1,4 @@
-package csulzc.My_Personal_Blogger.api.dto;
+package csulzc.My_Personal_Blogger.api.dto.category;
 
 import lombok.Data;
 import lombok.Builder;

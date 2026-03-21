@@ -1,9 +1,7 @@
-package csulzc.My_Personal_Blogger.api.dto;
+package csulzc.My_Personal_Blogger.api.dto.user;
 
 import lombok.Data;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import csulzc.My_Personal_Blogger.domain.entity.User;
 import jakarta.validation.constraints.*;
 
 /**
