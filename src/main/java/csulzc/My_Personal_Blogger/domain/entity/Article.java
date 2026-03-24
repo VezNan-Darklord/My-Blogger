@@ -29,6 +29,10 @@ public class Article extends BaseEntity
 
     private String content = "";
 
+    private String summary = "";
+
+    private String coverImage = "";
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Article.ArticleStatus status = Article.ArticleStatus.DRAFT;
