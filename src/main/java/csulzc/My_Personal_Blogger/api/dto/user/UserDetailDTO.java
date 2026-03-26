@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @EqualsAndHashCode(callSuper = true)
 public class UserDetailDTO extends BaseDTO {
+    private Long id;
     private String username;
     private String email;
     private String displayName;
@@ -19,6 +20,8 @@ public class UserDetailDTO extends BaseDTO {
     private String bio;
     private User.UserStatus status;
     private LocalDateTime lastLoginAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Long articleCount;
     private Long commentCount;
     private Long favoriteCount;

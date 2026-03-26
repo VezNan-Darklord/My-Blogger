@@ -33,6 +33,8 @@ public interface CommentRepository extends BaseRepository<Comment, Long> {
     @Modifying
     @Query("DELETE FROM Comment c WHERE c.article = :article")
     int deleteByArticle(@Param("article") Article article);
+
+    long countByCommenter(User user);
 }
 
 // TODO: 添加其测试类

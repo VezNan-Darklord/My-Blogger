@@ -33,10 +33,16 @@ public class User extends BaseEntity
 
     private LocalDateTime passwordUpdatedAt = LocalDateTime.now();
 
+    private LocalDateTime lastLoginAt;
+
     @Column(nullable = false, unique = true)
     private String email;
 
     private String displayName;
+
+    private String avatar;
+
+    private String bio;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
