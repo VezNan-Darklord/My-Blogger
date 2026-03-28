@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 @EqualsAndHashCode(callSuper = true)
 public class CategoryDTO extends BaseDTO {
+    private Long id;
     private String name;
     private String description;
     private Long parentCategoryId;

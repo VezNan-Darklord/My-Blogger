@@ -38,4 +38,6 @@ public class Category extends BaseEntity {
     @Builder.Default
     @ToString.Exclude
     private List<Category> subCategories = new ArrayList<>();
+
+    private String description;
 }
