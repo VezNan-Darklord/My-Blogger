@@ -22,9 +22,9 @@ public abstract class BaseEntity {
     private Long id;
 
     @Column(updatable = false)  // 创建后不可更新
-    private LocalDateTime createdAt;
+    protected LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt;
+    protected LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {

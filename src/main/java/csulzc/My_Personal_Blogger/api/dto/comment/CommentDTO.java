@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -15,6 +16,7 @@ import java.util.List;
 @Builder
 @EqualsAndHashCode(callSuper = true)
 public class CommentDTO extends BaseDTO {
+    private Long id;
     private String content;
     private UserProfileDTO commenter;
     private Long articleId;
@@ -22,5 +24,6 @@ public class CommentDTO extends BaseDTO {
     private Integer replyCount;
     private List<CommentDTO> replies;  // 回复列表（懒加载）
     private Integer likeCount;
+    private LocalDateTime createdAt;
     private Boolean isLiked;
 }

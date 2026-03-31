@@ -40,4 +40,6 @@ public class Comment extends BaseEntity {
     @Builder.Default
     @ToString.Exclude
     private List<Comment> replies = new ArrayList<>();
+
+    private Integer likeCount;
 }
