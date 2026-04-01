@@ -1,11 +1,7 @@
 package csulzc.My_Personal_Blogger.repository;
 
-import csulzc.My_Personal_Blogger.domain.entity.Category;
-import csulzc.My_Personal_Blogger.domain.entity.Article;
-import csulzc.My_Personal_Blogger.domain.entity.User;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import csulzc.My_Personal_Blogger.domain.entity.*;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;

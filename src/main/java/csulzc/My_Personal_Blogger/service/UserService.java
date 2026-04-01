@@ -1,9 +1,8 @@
-package csulzc.My_Personal_Blogger.Service;
+package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.*;
 import csulzc.My_Personal_Blogger.domain.entity.Article;
-import csulzc.My_Personal_Blogger.domain.entity.Comment;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

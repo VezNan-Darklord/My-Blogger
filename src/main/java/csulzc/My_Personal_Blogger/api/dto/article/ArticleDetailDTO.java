@@ -31,5 +31,4 @@ public class ArticleDetailDTO extends BaseDTO {
     private Integer commentCount;
     private Boolean isLiked;        // 当前用户是否点赞
     private Boolean isFavorite;    // 当前用户是否收藏
-    private List<CommentDTO> topComments;  // 前几条评论
 }

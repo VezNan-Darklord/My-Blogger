@@ -1,4 +1,4 @@
-package csulzc.My_Personal_Blogger.Service;
+package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.category.*;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
@@ -16,7 +16,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service

@@ -1,4 +1,4 @@
-package csulzc.My_Personal_Blogger.Service;
+package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
