@@ -3,11 +3,9 @@ package csulzc.My_Personal_Blogger.service;
 import csulzc.My_Personal_Blogger.api.dto.article.*;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
-import csulzc.My_Personal_Blogger.domain.entity.Article;
-import csulzc.My_Personal_Blogger.domain.entity.Category;
-import csulzc.My_Personal_Blogger.domain.entity.User;
-import csulzc.My_Personal_Blogger.repository.ArticleRepository;
-import csulzc.My_Personal_Blogger.repository.CategoryRepository;
+import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
+import csulzc.My_Personal_Blogger.domain.entity.*;
+import csulzc.My_Personal_Blogger.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -265,6 +263,7 @@ public class ArticleService {
      */
     private ArticleDetailDTO convertToDetailDTO(Article article) {
         return ArticleDetailDTO.builder()
+                .id(article.getId())
                 .title(article.getTitle())
                 .content(article.getContent())
                 .summary(article.getSummary())
@@ -273,10 +272,35 @@ public class ArticleService {
                 .likeCount(article.getLikeCount())
                 .favoriteCount(article.getFavoriteCount())
                 .commentCount(article.getComments().size())
+                .author(convertToUserProfileDTO(article.getAuthor()))
                 .categories(convertToCategoryDTOs(article.getCategories()))
                 .build();
     }
 
+    private UserProfileDTO convertToUserProfileDTO(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        if (user.getId() == null) {
+            return UserProfileDTO.builder()
+                    .username(user.getUsername())
+                    .displayName(user.getDisplayName())
+                    .avatar(user.getAvatar())
+                    .bio(user.getBio())
+                    .createdAt(user.getCreatedAt())
+                    .build();
+        }
+
+        return UserProfileDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .displayName(user.getDisplayName())
+                .avatar(user.getAvatar())
+                .bio(user.getBio())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
     /**
      * 转换为 ArticleListItemDTO
      */
@@ -289,6 +313,7 @@ public class ArticleService {
                 .createdAt(article.getCreatedAt())
                 .likeCount(article.getLikeCount())
                 .commentCount(article.getComments().size())
+                .author(convertToUserProfileDTO(article.getAuthor()))
                 .categories(convertToCategoryDTOs(article.getCategories()))
                 .build();
     }

@@ -2,7 +2,7 @@ package csulzc.My_Personal_Blogger.api.dto.category;
 
 import csulzc.My_Personal_Blogger.api.dto.common.BaseDTO;
 import lombok.Data;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.List;
  * 分类DTO
  */
 @Data
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class CategoryDTO extends BaseDTO {
     private Long id;

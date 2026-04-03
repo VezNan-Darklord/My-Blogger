@@ -2,14 +2,14 @@ package csulzc.My_Personal_Blogger.api.dto.user;
 
 import csulzc.My_Personal_Blogger.api.dto.common.BaseDTO;
 import lombok.Data;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import lombok.EqualsAndHashCode;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 
 import java.time.LocalDateTime;
 
 @Data
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserDetailDTO extends BaseDTO {
     private Long id;

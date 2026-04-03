@@ -4,7 +4,7 @@ import csulzc.My_Personal_Blogger.api.dto.common.BaseDTO;
 import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import lombok.Data;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
  * 文章列表项DTO（用于列表页）
  */
 @Data
-@Builder
+@SuperBuilder
 public class ArticleListItemDTO extends BaseDTO {
     private Long id;
     private String title;

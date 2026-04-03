@@ -5,7 +5,7 @@ import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import lombok.Data;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import lombok.EqualsAndHashCode;
 import csulzc.My_Personal_Blogger.domain.entity.Article;
 
@@ -15,9 +15,10 @@ import java.util.List;
  * 文章详情DTO（用于详情页）
  */
 @Data
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class ArticleDetailDTO extends BaseDTO {
+    private Long id;
     private String title;
     private String content;
     private String summary;

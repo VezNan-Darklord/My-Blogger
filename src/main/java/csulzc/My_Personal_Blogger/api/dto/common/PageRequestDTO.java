@@ -1,7 +1,7 @@
 package csulzc.My_Personal_Blogger.api.dto.common;
 
 import lombok.Data;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,18 +10,15 @@ import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @Data
-@Builder
+@SuperBuilder
 public class PageRequestDTO {
-    @Builder.Default
-    private int page = 0;
+    private int page;
 
-    @Builder.Default
-    private int size = 10;
+    private int size;
 
     private String sortBy;
 
-    @Builder.Default
-    private String sortDirection = "DESC";
+    private String sortDirection;
 
     public Pageable toPageable() {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
