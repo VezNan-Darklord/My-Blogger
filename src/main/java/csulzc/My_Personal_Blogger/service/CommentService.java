@@ -103,8 +103,33 @@ public class CommentService {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
-        return commentRepository.deleteByArticle(article);
+        // 先查询所有评论
+        List<Comment> allComments = commentRepository.findByArticle(article);
+
+        // 先删除所有回复评论（有父评论的）
+        List<Comment> replyComments = allComments.stream()
+                .filter(c -> c.getParentComment() != null)
+                .collect(Collectors.toList());
+
+        for (Comment reply : replyComments) {
+            Comment parent = reply.getParentComment();
+            if (parent != null) {
+                parent.getReplies().remove(reply);
+            }
+        }
+
+        commentRepository.deleteAll(replyComments);
+
+        // 再删除顶级评论
+        List<Comment> topLevelComments = allComments.stream()
+                .filter(c -> c.getParentComment() == null)
+                .collect(Collectors.toList());
+
+        commentRepository.deleteAll(topLevelComments);
+
+        return allComments.size();
     }
+
 
     // ==================== 评论查询 ====================
 

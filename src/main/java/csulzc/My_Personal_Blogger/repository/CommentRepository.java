@@ -29,6 +29,10 @@ public interface CommentRepository extends BaseRepository<Comment, Long> {
     // 4. 统计文章评论数
     long countByArticle(Article article);
 
+    // 在 CommentRepository.java 中添加
+    List<Comment> findByArticle(Article article);
+
+
     // 5. 批量删除文章的评论
     @Modifying
     @Query("DELETE FROM Comment c WHERE c.article = :article")
