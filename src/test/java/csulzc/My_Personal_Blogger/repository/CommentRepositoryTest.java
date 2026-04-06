@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")  // 使用测试配置
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestCommentRepository {
+public class CommentRepositoryTest {
 
     @Autowired
     private CommentRepository commentRepository;

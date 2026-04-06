@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")
 @DisplayName("CategoryRepository 测试")
-class TestCategoryRepository {
+class CategoryRepositoryTest {
 
     @Autowired
     private CategoryRepository categoryRepository;

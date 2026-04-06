@@ -1,7 +1,6 @@
 package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
-import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import({ArticleService.class, CategoryService.class})
 @DisplayName("ArticleService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestArticleService {
+public class ArticleServiceTest {
     @Autowired
     private ArticleService articleService;
 

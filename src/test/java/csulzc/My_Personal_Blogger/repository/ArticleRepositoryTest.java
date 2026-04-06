@@ -15,7 +15,6 @@ import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.*;
 
 /**
  * ArticleRepository 测试类
@@ -24,7 +23,7 @@ import static org.junit.jupiter.api.Assumptions.*;
 @DataJpaTest
 @ActiveProfiles("test")  // 使用测试配置
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)  // 测试方法执行顺序
-class TestArticleRepository {
+class ArticleRepositoryTest {
 
     @Autowired
     private ArticleRepository articleRepository;

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 
@@ -22,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import(CategoryService.class)
 @DisplayName("CategoryService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestCategoryService {
+public class CategoryServiceTest {
 
     @Autowired
     private CategoryService categoryService;

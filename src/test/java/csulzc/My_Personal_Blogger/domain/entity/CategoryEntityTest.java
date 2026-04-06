@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestCategoryEntity {
+public class CategoryEntityTest {
 
     private Category category;
 

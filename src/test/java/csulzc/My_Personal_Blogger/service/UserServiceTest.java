@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import({UserService.class, SecurityConfig.class})
 @DisplayName("UserService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestUserService {
+public class UserServiceTest {
 
     @Autowired
     private UserService userService;

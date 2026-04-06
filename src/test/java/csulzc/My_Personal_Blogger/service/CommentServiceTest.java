@@ -2,14 +2,12 @@ package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
-import csulzc.My_Personal_Blogger.api.dto.comment.CommentReplyDTO;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 
@@ -23,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import(CommentService.class)
 @DisplayName("CommentService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestCommentService {
+public class CommentServiceTest {
 
     @Autowired
     private CommentService commentService;

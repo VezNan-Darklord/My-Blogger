@@ -8,7 +8,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
-import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.Optional;
 
@@ -17,7 +16,7 @@ import static org.assertj.core.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")
 @DisplayName("UserRepository 测试")
-class TestUserRepository {
+class UserRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
