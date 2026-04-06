@@ -87,6 +87,9 @@ public class Article extends BaseEntity
             return;
         }
         categories.add(category);
+        if (category.getArticles() != null) {
+            category.getArticles().add(this);
+        }
     }
 
     public void removeCategory(Category category) {

@@ -6,6 +6,7 @@ import csulzc.My_Personal_Blogger.domain.entity.Category;
 import csulzc.My_Personal_Blogger.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -306,6 +307,9 @@ public class CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
 
+        Hibernate.initialize(category.getArticles());
+        Hibernate.initialize(category.getSubCategories());
+
         // 检查是否有文章关联
         if (!category.getArticles().isEmpty()) {
             throw new IllegalStateException("该分类下还有文章，无法删除");
@@ -333,6 +337,9 @@ public class CategoryService {
     public void deleteCategoryAndTransferArticles(Long categoryId, Long targetCategoryId) {
         Category sourceCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("源分类不存在"));
+
+        Hibernate.initialize(sourceCategory.getArticles());
+        Hibernate.initialize(sourceCategory.getSubCategories());
 
         // 检查是否有子分类
         if (!sourceCategory.getSubCategories().isEmpty()) {
