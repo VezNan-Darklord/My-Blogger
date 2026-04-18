@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.1.5</version>
+		<version>3.2.5</version>
 		<relativePath/>
 	</parent>
 
@@ -18,7 +18,9 @@
 	<description>Personal Blog System</description>
 
 	<properties>
-		<java.version>17</java.version>
+		<java.version>23</java.version>
+		<mockito.version>5.14.2</mockito.version>
+		<byte-buddy.version>1.15.11</byte-buddy.version>
 	</properties>
 
 	<dependencies>
