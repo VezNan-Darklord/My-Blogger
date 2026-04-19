@@ -15,5 +15,6 @@ public class UserProfileDTO {
     private String bio;      // 个人简介
     private LocalDateTime createdAt;
     private Long articleCount;
+    private Long commentCount;
     private Long followerCount;
 }
