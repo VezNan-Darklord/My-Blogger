@@ -7,6 +7,7 @@ import csulzc.My_Personal_Blogger.api.dto.article.ArticleUpdateRequest;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.service.ArticleService;
+import csulzc.My_Personal_Blogger.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -63,6 +64,9 @@ class ArticleControllerTest {
 
     @MockBean
     private ArticleService articleService;
+
+    @MockBean
+    private UserService userService;
 
     private ArticleCreateRequest createRequest;
     private ArticleUpdateRequest updateRequest;

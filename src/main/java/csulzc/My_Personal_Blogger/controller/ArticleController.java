@@ -4,7 +4,7 @@ import csulzc.My_Personal_Blogger.api.dto.article.*;
 import csulzc.My_Personal_Blogger.api.dto.common.PageRequestDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
-import csulzc.My_Personal_Blogger.service.ArticleService;
+import csulzc.My_Personal_Blogger.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final UserService userService;
 
     /**
      * 创建文章
@@ -135,12 +136,17 @@ public class ArticleController {
         if (pageRequest.getSize() <= 0 || pageRequest.getSize() > 100) {
             throw new IllegalArgumentException("每页大小必须在1-100之间");
         }
-        // TODO: 需要从 UserService 获取 User 对象
-        // User author = userService.getUserById(authorId);
+        var user = userService.getUserDetail(authorId);
+        var author = new csulzc.My_Personal_Blogger.domain.entity.User();
+        author.setId(user.getId());
+        author.setUsername(user.getUsername());
+        author.setDisplayName(user.getDisplayName());
+        author.setAvatar(user.getAvatar());
+        author.setBio(user.getBio());
+        author.setCreatedAt(user.getCreatedAt());
         Pageable pageable = pageRequest.toPageable();
-        // PageResponseDTO<ArticleListItemDTO> articles = articleService.getArticlesByAuthor(author, pageable);
-        // return ResponseEntity.ok(Result.success(articles));
-        return ResponseEntity.ok(Result.success(null, "待实现：需要先注入 UserService"));
+        PageResponseDTO<ArticleListItemDTO> articles = articleService.getArticlesByAuthor(author, pageable);
+        return ResponseEntity.ok(Result.success(articles));
     }
 
     /**
