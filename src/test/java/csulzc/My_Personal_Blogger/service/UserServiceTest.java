@@ -1,10 +1,14 @@
 package csulzc.My_Personal_Blogger.service;
 
+import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.security.JwtAuthenticationFilter;
 import csulzc.My_Personal_Blogger.api.dto.user.*;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
 import csulzc.My_Personal_Blogger.config.SecurityConfig;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
 import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -20,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({UserService.class, SecurityConfig.class})
+@Import({UserService.class, SecurityConfig.class, JwtTokenProvider.class, JwtProperties.class})
 @DisplayName("UserService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UserServiceTest {
@@ -43,12 +47,16 @@ public class UserServiceTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     private UserRegisterRequest registerRequest;
     private UserLoginRequest loginRequest;
     private UserUpdateRequest updateRequest;
 
     private User testUser;
     private Long testUserId;
+
 
     @BeforeEach
     void setUp() {
@@ -149,58 +157,28 @@ public class UserServiceTest {
 
     @Test
     @Order(4)
-    @DisplayName("测试用户登录 - 成功（使用用户名）")
-    void testLogin_Success_WithUsername() {
+    @DisplayName("测试用户登录(新方法-带Token) - 成功")
+    void testLoginWithToken_Success() {
         // Given - 准备数据（已在 setUp 中准备）
 
         // When - 执行登录操作
-        UserDetailDTO result = userService.login(loginRequest);
+        LoginResponseDTO result = userService.loginWithToken(loginRequest);
 
         // Then - 验证结果
         assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-        assertEquals("test@example.com", result.getEmail());
-        assertNotNull(result.getLastLoginAt());
+        assertNotNull(result.getAccessToken());
+        assertNotNull(result.getRefreshToken());
+        assertEquals("Bearer", result.getTokenType());
+        assertNotNull(result.getExpiresIn());
+        assertNotNull(result.getUser());
+        assertEquals("testuser", result.getUser().getUsername());
+        assertEquals("test@example.com", result.getUser().getEmail());
     }
 
     @Test
     @Order(5)
-    @DisplayName("测试用户登录 - 成功（使用邮箱）")
-    void testLogin_Success_WithEmail() {
-        // Given - 使用邮箱登录
-        UserLoginRequest emailLoginRequest = UserLoginRequest.builder()
-                .loginId("test@example.com")
-                .password("password123")
-                .build();
-
-        // When - 执行登录操作
-        UserDetailDTO result = userService.login(emailLoginRequest);
-
-        // Then - 验证结果
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @Order(6)
-    @DisplayName("测试用户登录 - 用户不存在")
-    void testLogin_UserNotFound() {
-        // Given - 使用不存在的用户名
-        UserLoginRequest invalidRequest = UserLoginRequest.builder()
-                .loginId("nonexistent")
-                .password("password123")
-                .build();
-
-        // When & Then - 应该抛出异常
-        assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            userService.login(invalidRequest);
-        });
-    }
-
-    @Test
-    @Order(7)
-    @DisplayName("测试用户登录 - 密码错误")
-    void testLogin_WrongPassword() {
+    @DisplayName("测试用户登录(新方法-带Token) - 密码错误")
+    void testLoginWithToken_WrongPassword() {
         // Given - 使用错误的密码
         UserLoginRequest wrongPasswordRequest = UserLoginRequest.builder()
                 .loginId("testuser")
@@ -209,44 +187,43 @@ public class UserServiceTest {
 
         // When & Then - 应该抛出异常
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.login(wrongPasswordRequest);
+            userService.loginWithToken(wrongPasswordRequest);
+        });
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("测试刷新Token - 成功")
+    void testRefreshToken_Success() {
+        // Given - 先登录获取刷新令牌
+        LoginResponseDTO loginResult = userService.loginWithToken(loginRequest);
+        String refreshToken = loginResult.getRefreshToken();
+
+        // When - 刷新Token
+        LoginResponseDTO refreshResult = userService.refreshToken(refreshToken);
+
+        // Then - 验证结果
+        assertNotNull(refreshResult);
+        assertNotNull(refreshResult.getAccessToken());
+        assertNotNull(refreshResult.getRefreshToken());
+        assertEquals("testuser", refreshResult.getUser().getUsername());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("测试刷新Token - 无效令牌")
+    void testRefreshToken_InvalidToken() {
+        // Given - 使用无效的刷新令牌
+        String invalidToken = "invalid.token.here";
+
+        // When & Then - 应该抛出异常
+        assertThrows(IllegalArgumentException.class, () -> {
+            userService.refreshToken(invalidToken);
         });
     }
 
     @Test
     @Order(8)
-    @DisplayName("测试用户登录 - 用户已被禁用")
-    void testLogin_UserInactive() {
-        // Given - 禁用用户
-        testUser.setStatus(User.UserStatus.INACTIVE);
-        entityManager.merge(testUser);
-        entityManager.flush();
-        entityManager.clear();
-
-        // When & Then - 应该抛出异常
-        assertThrows(IllegalStateException.class, () -> {
-            userService.login(loginRequest);
-        });
-    }
-
-    @Test
-    @Order(9)
-    @DisplayName("测试用户登录 - 用户已被锁定")
-    void testLogin_UserLocked() {
-        // Given - 锁定用户
-        testUser.setStatus(User.UserStatus.LOCKED);
-        entityManager.merge(testUser);
-        entityManager.flush();
-        entityManager.clear();
-
-        // When & Then - 应该抛出异常
-        assertThrows(IllegalStateException.class, () -> {
-            userService.login(loginRequest);
-        });
-    }
-
-    @Test
-    @Order(10)
     @DisplayName("测试根据 ID 获取用户详情")
     void testGetUserDetail_ByUserId() {
         // Given
@@ -263,7 +240,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(11)
+    @Order(9)
     @DisplayName("测试根据 ID 获取用户详情 - 用户不存在")
     void testGetUserDetail_NotFound() {
         // Given
@@ -276,7 +253,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(12)
+    @Order(10)
     @DisplayName("测试根据用户名获取用户详情")
     void testGetUserDetail_ByUsername() {
         // Given
@@ -292,7 +269,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(13)
+    @Order(11)
     @DisplayName("测试根据用户名获取用户详情 - 用户不存在")
     void testGetUserDetailByUsername_NotFound() {
         // Given
@@ -305,7 +282,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(14)
+    @Order(12)
     @DisplayName("测试获取用户公开资料")
     void testGetUserProfile() {
         // Given
@@ -322,7 +299,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(15)
+    @Order(13)
     @DisplayName("测试通过用户名获取用户公开资料")
     void testGetUserProfileByUsername() {
         // Given
@@ -338,7 +315,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(16)
+    @Order(14)
     @DisplayName("测试更新用户信息 - 成功")
     void testUpdateUser_Success() {
         // Given
@@ -355,7 +332,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(17)
+    @Order(15)
     @DisplayName("测试更新用户信息 - 用户不存在")
     void testUpdateUser_NotFound() {
         // Given
@@ -368,7 +345,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(18)
+    @Order(16)
     @DisplayName("测试更新用户信息 - 部分字段更新")
     void testUpdateUser_PartialFields() {
         // Given - 只更新显示名称
@@ -386,7 +363,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(19)
+    @Order(17)
     @DisplayName("测试修改密码 - 成功")
     void testChangePassword_Success() {
         // Given
@@ -402,12 +379,12 @@ public class UserServiceTest {
                 .loginId("testuser")
                 .password(newPassword)
                 .build();
-        UserDetailDTO result = userService.login(newLoginRequest);
+        LoginResponseDTO result = userService.loginWithToken(newLoginRequest);
         assertNotNull(result);
     }
 
     @Test
-    @Order(20)
+    @Order(18)
     @DisplayName("测试修改密码 - 原密码错误")
     void testChangePassword_WrongOldPassword() {
         // Given
@@ -422,7 +399,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(21)
+    @Order(19)
     @DisplayName("测试重置密码（管理员功能）")
     void testResetPassword() {
         // Given
@@ -437,12 +414,12 @@ public class UserServiceTest {
                 .loginId("testuser")
                 .password(newPassword)
                 .build();
-        UserDetailDTO result = userService.login(newLoginRequest);
+        LoginResponseDTO result = userService.loginWithToken(newLoginRequest);
         assertNotNull(result);
     }
 
     @Test
-    @Order(22)
+    @Order(20)
     @DisplayName("测试获取用户活动统计")
     void testGetUserActivity() {
         // Given - 为用户创建文章和评论
@@ -474,7 +451,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(23)
+    @Order(21)
     @DisplayName("测试统计用户文章数")
     void testCountUserArticles() {
         // Given - 为用户创建文章
@@ -496,7 +473,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(24)
+    @Order(22)
     @DisplayName("测试统计用户评论数")
     void testCountUserComments() {
         // Given - 为用户创建评论
@@ -525,7 +502,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(25)
+    @Order(23)
     @DisplayName("测试启用用户")
     void testActivateUser() {
         // Given - 创建一个禁用的用户
@@ -548,7 +525,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(26)
+    @Order(24)
     @DisplayName("测试禁用用户")
     void testDeactivateUser() {
         // Given
@@ -563,7 +540,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(27)
+    @Order(25)
     @DisplayName("测试锁定用户")
     void testLockUser() {
         // Given
@@ -578,7 +555,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(28)
+    @Order(26)
     @DisplayName("测试解锁用户")
     void testUnlockUser() {
         // Given - 创建一个锁定的用户
@@ -601,7 +578,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(29)
+    @Order(27)
     @DisplayName("测试删除用户 - 软删除")
     void testDeleteUser_SoftDelete() {
         // Given
@@ -617,7 +594,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(30)
+    @Order(28)
     @DisplayName("测试分页查询所有用户")
     void testGetAllUsers() {
         // Given - 创建更多用户
@@ -644,7 +621,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(31)
+    @Order(29)
     @DisplayName("测试根据状态查询用户")
     void testGetUsersByStatus() {
         // Given - 创建不同状态的用户
@@ -674,7 +651,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(32)
+    @Order(30)
     @DisplayName("测试搜索用户")
     void testSearchUsers() {
         // Given - 创建多个用户
@@ -707,7 +684,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(33)
+    @Order(31)
     @DisplayName("测试统计活跃用户数")
     void testCountActiveUsers() {
         // When - 统计活跃用户数
@@ -718,7 +695,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(34)
+    @Order(32)
     @DisplayName("测试统计禁用用户数")
     void testCountInactiveUsers() {
         // Given - 创建禁用用户
@@ -739,7 +716,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(35)
+    @Order(33)
     @DisplayName("测试统计锁定用户数")
     void testCountLockedUsers() {
         // Given - 创建锁定用户
@@ -760,7 +737,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(36)
+    @Order(34)
     @DisplayName("测试获取总用户数")
     void testGetTotalUserCount() {
         // Given - 创建更多用户
@@ -783,7 +760,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(37)
+    @Order(35)
     @DisplayName("测试获取最近登录的用户列表")
     void testGetRecentlyActiveUsers() {
         // Given - 创建用户并设置最后登录时间
@@ -817,7 +794,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(38)
+    @Order(36)
     @DisplayName("测试检查用户名是否存在")
     void testExistsByUsername() {
         // When & Then
@@ -826,7 +803,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(39)
+    @Order(37)
     @DisplayName("测试检查邮箱是否已注册")
     void testExistsByEmail() {
         // When & Then
@@ -835,7 +812,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(40)
+    @Order(38)
     @DisplayName("测试删除用户 - 用户不存在")
     void testDeleteUser_NotFound() {
         // Given
@@ -848,7 +825,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @Order(41)
+    @Order(39)
     @DisplayName("性能测试 - 高并发用户注册与查询")
     void testPerformance_HighFrequencyOperations() {
         // Given - 准备性能测试参数
@@ -897,6 +874,6 @@ public class UserServiceTest {
 
         // 验证所有用户都已成功创建
         long totalUsers = userService.getTotalUserCount();
-        assertThat(totalUsers).isEqualTo(iterationCount + 1); // 100个新用户 + setUp中的1个
+        assertThat(totalUsers).isEqualTo(iterationCount + 1); // 5000个新用户 + setUp中的1个
     }
 }

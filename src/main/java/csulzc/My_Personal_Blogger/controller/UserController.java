@@ -2,6 +2,7 @@ package csulzc.My_Personal_Blogger.controller;
 
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.*;
+import csulzc.My_Personal_Blogger.api.dto.user.LoginResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.service.UserService;
@@ -30,13 +31,23 @@ public class UserController {
     }
 
     /**
-     * 用户登录
+     * 用户登录(返回Token)
      */
     @PostMapping("/login")
-    public ResponseEntity<Result<UserDetailDTO>> login(
+    public ResponseEntity<Result<LoginResponseDTO>> login(
             @Valid @RequestBody UserLoginRequest request) {
-        UserDetailDTO user = userService.login(request);
-        return ResponseEntity.ok(Result.success(user, "登录成功"));
+        LoginResponseDTO response = userService.loginWithToken(request);
+        return ResponseEntity.ok(Result.success(response, "登录成功"));
+    }
+
+    /**
+     * 刷新Token
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<Result<LoginResponseDTO>> refreshToken(
+            @RequestParam String refreshToken) {
+        LoginResponseDTO response = userService.refreshToken(refreshToken);
+        return ResponseEntity.ok(Result.success(response, "Token刷新成功"));
     }
 
     /**

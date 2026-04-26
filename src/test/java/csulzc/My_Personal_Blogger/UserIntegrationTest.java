@@ -1,9 +1,6 @@
 package csulzc.My_Personal_Blogger;
 
-import csulzc.My_Personal_Blogger.api.dto.user.UserDetailDTO;
-import csulzc.My_Personal_Blogger.api.dto.user.UserLoginRequest;
-import csulzc.My_Personal_Blogger.api.dto.user.UserRegisterRequest;
-import csulzc.My_Personal_Blogger.api.dto.user.UserUpdateRequest;
+import csulzc.My_Personal_Blogger.api.dto.user.*;
 import csulzc.My_Personal_Blogger.domain.entity.Article;
 import csulzc.My_Personal_Blogger.domain.entity.Comment;
 import csulzc.My_Personal_Blogger.domain.entity.User;
@@ -11,6 +8,7 @@ import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
 import csulzc.My_Personal_Blogger.service.UserService;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -31,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({UserService.class, UserIntegrationTest.TestSecurityConfig.class})
+@Import({UserService.class, UserIntegrationTest.TestSecurityConfig.class, JwtTokenProvider.class})
 @Transactional
 @DisplayName("User 集成测试 - 层间协作")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -62,6 +60,9 @@ public class UserIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     private User testUser1;
     private User testUser2;
@@ -134,22 +135,36 @@ public class UserIntegrationTest {
 
     @Test
     @Order(2)
-    @DisplayName("测试用户登录 - 验证身份认证和状态检查")
-    void testUserLogin_WithAuthentication() {
+    @DisplayName("测试用户登录(新方法-带Token) - 验证JWT Token生成")
+    void testUserLoginWithToken_WithJwtGeneration() {
         // Given - 使用用户名登录
         UserLoginRequest loginRequest = UserLoginRequest.builder()
                 .loginId("user1")
                 .password("password123")
                 .build();
 
-        // When - 执行登录
-        UserDetailDTO result = userService.login(loginRequest);
+        // When - 执行登录(带Token)
+        LoginResponseDTO result = userService.loginWithToken(loginRequest);
 
-        // Then - 验证登录成功
+        // Then - 验证登录成功并返回Token
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("user1");
-        assertThat(result.getEmail()).isEqualTo("user1@example.com");
-        assertThat(result.getLastLoginAt()).isNotNull();
+        assertThat(result.getAccessToken()).isNotNull();
+        assertThat(result.getRefreshToken()).isNotNull();
+        assertThat(result.getTokenType()).isEqualTo("Bearer");
+        assertThat(result.getExpiresIn()).isNotNull();
+        assertThat(result.getUser()).isNotNull();
+        assertThat(result.getUser().getUsername()).isEqualTo("user1");
+        assertThat(result.getUser().getEmail()).isEqualTo("user1@example.com");
+
+        // 验证Token有效性
+        assertThat(jwtTokenProvider.validateToken(result.getAccessToken())).isTrue();
+        assertThat(jwtTokenProvider.validateToken(result.getRefreshToken())).isTrue();
+
+        // 验证Token中的用户信息
+        Long userIdFromToken = jwtTokenProvider.getUserIdFromToken(result.getAccessToken());
+        String usernameFromToken = jwtTokenProvider.getUsernameFromToken(result.getAccessToken());
+        assertThat(userIdFromToken).isEqualTo(testUser1.getId());
+        assertThat(usernameFromToken).isEqualTo("user1");
 
         // 验证数据库中最后登录时间已更新
         entityManager.flush();
@@ -160,6 +175,36 @@ public class UserIntegrationTest {
 
     @Test
     @Order(3)
+    @DisplayName("测试刷新Token - 验证Token刷新机制")
+    void testRefreshToken_WithTokenRefresh() {
+        // Given - 先登录获取刷新令牌
+        UserLoginRequest loginRequest = UserLoginRequest.builder()
+                .loginId("user1")
+                .password("password123")
+                .build();
+        LoginResponseDTO loginResult = userService.loginWithToken(loginRequest);
+        String refreshToken = loginResult.getRefreshToken();
+
+        // When - 刷新Token
+        LoginResponseDTO refreshResult = userService.refreshToken(refreshToken);
+
+        // Then - 验证刷新成功
+        assertThat(refreshResult).isNotNull();
+        assertThat(refreshResult.getAccessToken()).isNotNull();
+        assertThat(refreshResult.getRefreshToken()).isNotNull();
+        assertThat(refreshResult.getTokenType()).isEqualTo("Bearer");
+        assertThat(refreshResult.getUser().getUsername()).isEqualTo("user1");
+
+        // 验证新Token有效
+        assertThat(jwtTokenProvider.validateToken(refreshResult.getAccessToken())).isTrue();
+        assertThat(jwtTokenProvider.validateToken(refreshResult.getRefreshToken())).isTrue();
+
+        // 验证新旧Token不同
+        assertThat(refreshResult.getAccessToken()).isNotEqualTo(loginResult.getAccessToken());
+    }
+
+    @Test
+    @Order(4)
     @DisplayName("测试用户登录 - 验证邮箱登录")
     void testUserLogin_WithEmailLogin() {
         // Given - 使用邮箱登录
@@ -169,15 +214,34 @@ public class UserIntegrationTest {
                 .build();
 
         // When - 执行登录
-        UserDetailDTO result = userService.login(loginRequest);
+        LoginResponseDTO result = userService.loginWithToken(loginRequest);
 
         // Then - 验证登录成功
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("user1");
+        assertThat(result.getUser().getUsername()).isEqualTo("user1");
     }
 
     @Test
-    @Order(4)
+    @Order(5)
+    @DisplayName("测试用户登录(带Token) - 验证邮箱登录")
+    void testUserLoginWithToken_WithEmailLogin() {
+        // Given - 使用邮箱登录
+        UserLoginRequest loginRequest = UserLoginRequest.builder()
+                .loginId("user1@example.com")
+                .password("password123")
+                .build();
+
+        // When - 执行登录(带Token)
+        LoginResponseDTO result = userService.loginWithToken(loginRequest);
+
+        // Then - 验证登录成功
+        assertThat(result).isNotNull();
+        assertThat(result.getUser().getUsername()).isEqualTo("user1");
+        assertThat(jwtTokenProvider.validateToken(result.getAccessToken())).isTrue();
+    }
+
+    @Test
+    @Order(6)
     @DisplayName("测试用户信息更新 - 验证字段更新")
     void testUserUpdate_WithFieldUpdates() {
         // Given - 准备更新请求
@@ -204,7 +268,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(7)
     @DisplayName("测试用户活动统计 - 验证文章和评论计数")
     void testUserActivityStats_WithArticleAndCommentCounts() {
         // Given - 为用户创建文章和评论
@@ -245,7 +309,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(6)
+    @Order(8)
     @DisplayName("测试用户状态管理 - 验证禁用和启用")
     void testUserStatusManagement_WithDeactivationAndActivation() {
         // Given - 用户初始状态为 ACTIVE
@@ -271,7 +335,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(7)
+    @Order(9)
     @DisplayName("测试用户状态管理 - 验证锁定和解锁")
     void testUserStatusManagement_WithLockAndUnlock() {
         // Given - 用户初始状态为 ACTIVE
@@ -296,9 +360,9 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(8)
-    @DisplayName("测试登录失败 - 验证禁用用户无法登录")
-    void testLoginFailed_WithInactiveUser() {
+    @Order(10)
+    @DisplayName("测试登录失败(新方法) - 验证禁用用户无法登录")
+    void testLoginWithTokenFailed_WithInactiveUser() {
         // Given - 禁用用户
         userService.deactivateUser(testUser1.getId());
         entityManager.flush();
@@ -311,14 +375,14 @@ public class UserIntegrationTest {
 
         // When & Then - 尝试登录应该失败
         assertThrows(IllegalStateException.class, () -> {
-            userService.login(loginRequest);
+            userService.loginWithToken(loginRequest);
         });
     }
 
     @Test
-    @Order(9)
-    @DisplayName("测试登录失败 - 验证锁定用户无法登录")
-    void testLoginFailed_WithLockedUser() {
+    @Order(11)
+    @DisplayName("测试登录失败(新方法) - 验证锁定用户无法登录")
+    void testLoginWithTokenFailed_WithLockedUser() {
         // Given - 锁定用户
         userService.lockUser(testUser1.getId());
         entityManager.flush();
@@ -331,14 +395,14 @@ public class UserIntegrationTest {
 
         // When & Then - 尝试登录应该失败
         assertThrows(IllegalStateException.class, () -> {
-            userService.login(loginRequest);
+            userService.loginWithToken(loginRequest);
         });
     }
 
     @Test
-    @Order(10)
-    @DisplayName("测试登录失败 - 验证错误密码")
-    void testLoginFailed_WithWrongPassword() {
+    @Order(12)
+    @DisplayName("测试登录失败(新方法) - 验证错误密码")
+    void testLoginWithTokenFailed_WithWrongPassword() {
         // Given - 错误的密码
         UserLoginRequest loginRequest = UserLoginRequest.builder()
                 .loginId("user1")
@@ -347,12 +411,12 @@ public class UserIntegrationTest {
 
         // When & Then - 尝试登录应该失败
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.login(loginRequest);
+            userService.loginWithToken(loginRequest);
         });
     }
 
     @Test
-    @Order(11)
+    @Order(13)
     @DisplayName("测试注册失败 - 验证用户名重复")
     void testRegistrationFailed_WithDuplicateUsername() {
         // Given - 使用已存在的用户名
@@ -369,7 +433,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(12)
+    @Order(14)
     @DisplayName("测试注册失败 - 验证邮箱重复")
     void testRegistrationFailed_WithDuplicateEmail() {
         // Given - 使用已存在的邮箱
@@ -386,7 +450,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(13)
+    @Order(15)
     @DisplayName("测试事务回滚 - 验证异常时的数据一致性")
     void testTransactionRollback_OnException() {
         // Given - 准备一个会导致异常的操作
@@ -407,7 +471,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(14)
+    @Order(16)
     @DisplayName("测试用户查询 - 验证分页和排序")
     void testUserQuery_WithPaginationAndSorting() {
         // Given - 创建更多用户
@@ -434,9 +498,9 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @Order(15)
-    @DisplayName("测试复杂场景 - 用户注册、登录、发布文章的完整流程")
-    void testComplexScenario_FullWorkflow() {
+    @Order(17)
+    @DisplayName("测试复杂场景 - 用户注册、登录(带Token)、发布文章的完整流程")
+    void testComplexScenario_FullWorkflowWithJwt() {
         // Given - 模拟真实场景
 
         // 1. 新用户注册
@@ -448,24 +512,40 @@ public class UserIntegrationTest {
                 .build();
         UserDetailDTO registeredUser = userService.register(registerRequest);
 
-        // 2. 用户登录
+        // 2. 用户登录(带Token)
         UserLoginRequest loginRequest = UserLoginRequest.builder()
                 .loginId("blogger")
                 .password("securepass123")
                 .build();
-        UserDetailDTO loggedInUser = userService.login(loginRequest);
+        LoginResponseDTO loginResponse = userService.loginWithToken(loginRequest);
 
-        // 3. 更新用户资料
+        // 3. 验证Token
+        assertThat(loginResponse.getAccessToken()).isNotNull();
+        assertThat(loginResponse.getRefreshToken()).isNotNull();
+        assertThat(jwtTokenProvider.validateToken(loginResponse.getAccessToken())).isTrue();
+
+        // 4. 从Token中提取用户信息
+        Long userIdFromToken = jwtTokenProvider.getUserIdFromToken(loginResponse.getAccessToken());
+        String usernameFromToken = jwtTokenProvider.getUsernameFromToken(loginResponse.getAccessToken());
+        assertThat(userIdFromToken).isEqualTo(registeredUser.getId());
+        assertThat(usernameFromToken).isEqualTo("blogger");
+
+        // 5. 更新用户资料
         UserUpdateRequest updateRequest = UserUpdateRequest.builder()
                 .displayName("专业博主")
                 .bio("专注于技术分享")
                 .avatar("https://example.com/blogger.jpg")
                 .build();
-        UserDetailDTO updatedUser = userService.updateUser(loggedInUser.getId(), updateRequest);
+        UserDetailDTO updatedUser = userService.updateUser(loginResponse.getUser().getId(), updateRequest);
+
+        // 6. 刷新Token
+        LoginResponseDTO refreshResponse = userService.refreshToken(loginResponse.getRefreshToken());
+        assertThat(refreshResponse.getAccessToken()).isNotNull();
+        assertThat(jwtTokenProvider.validateToken(refreshResponse.getAccessToken())).isTrue();
 
         // Then - 验证所有操作的结果
         assertThat(registeredUser.getUsername()).isEqualTo("blogger");
-        assertThat(loggedInUser.getLastLoginAt()).isNotNull();
+        assertThat(loginResponse.getUser().getLastLoginAt()).isNotNull();
         assertThat(updatedUser.getDisplayName()).isEqualTo("专业博主");
         assertThat(updatedUser.getBio()).isEqualTo("专注于技术分享");
 
@@ -474,5 +554,44 @@ public class UserIntegrationTest {
         assertThat(savedUser).isPresent();
         assertThat(savedUser.get().getEmail()).isEqualTo("blogger@example.com");
         assertThat(passwordEncoder.matches("securepass123", savedUser.get().getPasswordHash())).isTrue();
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("测试Token安全性 - 验证无效Token被拒绝")
+    void testTokenSecurity_WithInvalidToken() {
+        // Given - 无效的Token
+        String invalidToken = "invalid.token.here";
+
+        // When & Then - 验证Token无效
+        assertThat(jwtTokenProvider.validateToken(invalidToken)).isFalse();
+
+        // 尝试使用无效Token刷新应该失败
+        assertThrows(IllegalArgumentException.class, () -> {
+            userService.refreshToken(invalidToken);
+        });
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("测试Token过期 - 验证Token生命周期")
+    void testTokenExpiration_WithTokenLifecycle() {
+        // Given - 登录获取Token
+        UserLoginRequest loginRequest = UserLoginRequest.builder()
+                .loginId("user1")
+                .password("password123")
+                .build();
+        LoginResponseDTO loginResponse = userService.loginWithToken(loginRequest);
+
+        String accessToken = loginResponse.getAccessToken();
+        String refreshToken = loginResponse.getRefreshToken();
+
+        // When & Then - 验证Token当前有效
+        assertThat(jwtTokenProvider.validateToken(accessToken)).isTrue();
+        assertThat(jwtTokenProvider.validateToken(refreshToken)).isTrue();
+
+        // 验证可以从Token中获取用户信息
+        Long userId = jwtTokenProvider.getUserIdFromToken(accessToken);
+        assertThat(userId).isEqualTo(testUser1.getId());
     }
 }

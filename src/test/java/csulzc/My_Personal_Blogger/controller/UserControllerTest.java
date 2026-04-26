@@ -3,6 +3,8 @@ package csulzc.My_Personal_Blogger.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.*;
+import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
 import csulzc.My_Personal_Blogger.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(UserController.class)
 @DisplayName("UserController 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import(UserControllerTest.TestSecurityConfig.class)
+@Import({UserControllerTest.TestSecurityConfig.class, JwtTokenProvider.class, JwtProperties.class})
 class UserControllerTest {
 
     @TestConfiguration
@@ -62,6 +64,7 @@ class UserControllerTest {
     private UserDetailDTO userDetailDTO;
     private UserProfileDTO userProfileDTO;
     private UserActivityDTO userActivityDTO;
+    private LoginResponseDTO loginResponseDTO;
 
     @BeforeEach
     void setUp() {
@@ -118,6 +121,14 @@ class UserControllerTest {
                 .likeReceived(20L)
                 .lastActiveAt(LocalDateTime.now())
                 .build();
+
+        loginResponseDTO = LoginResponseDTO.builder()
+                .accessToken("eyJhbGciOiJIUzI1NiJ9.test.access.token")
+                .refreshToken("eyJhbGciOiJIUzI1NiJ9.test.refresh.token")
+                .tokenType("Bearer")
+                .expiresIn(86400000L)
+                .user(userDetailDTO)
+                .build();
     }
 
     @Test
@@ -173,10 +184,10 @@ class UserControllerTest {
 
     @Test
     @Order(4)
-    @DisplayName("测试用户登录 - 成功")
+    @DisplayName("测试用户登录(带Token) - 成功")
     void testLogin_Success() throws Exception {
-        given(userService.login(any(UserLoginRequest.class)))
-                .willReturn(userDetailDTO);
+        given(userService.loginWithToken(any(UserLoginRequest.class)))
+                .willReturn(loginResponseDTO);
 
         mockMvc.perform(post("/api/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -184,9 +195,12 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("登录成功"))
-                .andExpect(jsonPath("$.data.username").value("testuser"));
+                .andExpect(jsonPath("$.data.accessToken").exists())
+                .andExpect(jsonPath("$.data.refreshToken").exists())
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.user.username").value("testuser"));
 
-        then(userService).should().login(any(UserLoginRequest.class));
+        then(userService).should().loginWithToken(any(UserLoginRequest.class));
     }
 
     @Test
@@ -206,6 +220,25 @@ class UserControllerTest {
 
     @Test
     @Order(6)
+    @DisplayName("测试刷新Token - 成功")
+    void testRefreshToken_Success() throws Exception {
+        String refreshToken = "eyJhbGciOiJIUzI1NiJ9.test.refresh.token";
+        given(userService.refreshToken(eq(refreshToken)))
+                .willReturn(loginResponseDTO);
+
+        mockMvc.perform(post("/api/users/refresh")
+                        .param("refreshToken", refreshToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("Token刷新成功"))
+                .andExpect(jsonPath("$.data.accessToken").exists())
+                .andExpect(jsonPath("$.data.refreshToken").exists());
+
+        then(userService).should().refreshToken(eq(refreshToken));
+    }
+
+    @Test
+    @Order(7)
     @DisplayName("测试获取用户详情 - 通过ID成功")
     void testGetUserDetail_ByUserId_Success() throws Exception {
         Long userId = 1L;
@@ -222,7 +255,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     @DisplayName("测试获取用户详情 - 无效ID")
     void testGetUserDetail_InvalidUserId() throws Exception {
         mockMvc.perform(get("/api/users/{userId}", -1))
@@ -230,7 +263,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     @DisplayName("测试获取用户详情 - 通过用户名成功")
     void testGetUserDetail_ByUsername_Success() throws Exception {
         String username = "testuser";
@@ -246,7 +279,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @DisplayName("测试获取用户详情 - 用户不存在")
     void testGetUserDetailByUsername_NotFound() throws Exception {
         String username = "nonexistent";
@@ -261,7 +294,7 @@ class UserControllerTest {
 
 
     @Test
-    @Order(10)
+    @Order(11)
     @DisplayName("测试获取用户公开资料 - 成功")
     void testGetUserProfile_Success() throws Exception {
         Long userId = 1L;
@@ -278,7 +311,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     @DisplayName("测试获取用户公开资料 - 无效ID")
     void testGetUserProfile_InvalidUserId() throws Exception {
         mockMvc.perform(get("/api/users/{userId}/profile", 0))
@@ -286,7 +319,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("测试更新用户信息 - 成功")
     void testUpdateUser_Success() throws Exception {
         Long userId = 1L;
@@ -316,7 +349,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     @DisplayName("测试更新用户信息 - 无效ID")
     void testUpdateUser_InvalidUserId() throws Exception {
         mockMvc.perform(put("/api/users/{userId}", -1)
@@ -326,7 +359,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     @DisplayName("测试修改密码 - 成功")
     void testChangePassword_Success() throws Exception {
         Long userId = 1L;
@@ -346,7 +379,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(15)
+    @Order(16)
     @DisplayName("测试修改密码 - 原密码为空")
     void testChangePassword_EmptyOldPassword() throws Exception {
         Long userId = 1L;
@@ -358,7 +391,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(16)
+    @Order(17)
     @DisplayName("测试修改密码 - 新密码长度不符合要求")
     void testChangePassword_NewPasswordTooShort() throws Exception {
         Long userId = 1L;
@@ -370,7 +403,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(17)
+    @Order(18)
     @DisplayName("测试获取用户活动统计 - 成功")
     void testGetUserActivity_Success() throws Exception {
         Long userId = 1L;
@@ -388,7 +421,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(18)
+    @Order(19)
     @DisplayName("测试获取用户活动统计 - 无效ID")
     void testGetUserActivity_InvalidUserId() throws Exception {
         mockMvc.perform(get("/api/users/{userId}/activity", 0))
@@ -396,7 +429,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(19)
+    @Order(20)
     @DisplayName("测试获取所有用户列表 - 成功")
     void testGetAllUsers_Success() throws Exception {
         PageResponseDTO<UserProfileDTO> pageResponse = PageResponseDTO.<UserProfileDTO>builder()
@@ -423,7 +456,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(20)
+    @Order(21)
     @DisplayName("测试获取所有用户列表 - 页码为负数")
     void testGetAllUsers_NegativePage() throws Exception {
         mockMvc.perform(get("/api/users")
@@ -433,7 +466,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(21)
+    @Order(22)
     @DisplayName("测试获取所有用户列表 - 每页大小超限")
     void testGetAllUsers_SizeExceedsLimit() throws Exception {
         mockMvc.perform(get("/api/users")
@@ -443,7 +476,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(22)
+    @Order(23)
     @DisplayName("测试搜索用户 - 成功")
     void testSearchUsers_Success() throws Exception {
         String keyword = "test";
@@ -469,7 +502,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(23)
+    @Order(24)
     @DisplayName("测试搜索用户 - 关键词为空")
     void testSearchUsers_EmptyKeyword() throws Exception {
         mockMvc.perform(get("/api/users/search")
@@ -480,7 +513,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(24)
+    @Order(25)
     @DisplayName("测试启用用户 - 成功")
     void testActivateUser_Success() throws Exception {
         Long userId = 1L;
@@ -495,7 +528,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(25)
+    @Order(26)
     @DisplayName("测试启用用户 - 无效ID")
     void testActivateUser_InvalidUserId() throws Exception {
         mockMvc.perform(post("/api/users/{userId}/activate", -1))
@@ -503,7 +536,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(26)
+    @Order(27)
     @DisplayName("测试禁用用户 - 成功")
     void testDeactivateUser_Success() throws Exception {
         Long userId = 1L;
@@ -518,7 +551,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(27)
+    @Order(28)
     @DisplayName("测试锁定用户 - 成功")
     void testLockUser_Success() throws Exception {
         Long userId = 1L;
@@ -533,7 +566,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(28)
+    @Order(29)
     @DisplayName("测试解锁用户 - 成功")
     void testUnlockUser_Success() throws Exception {
         Long userId = 1L;
@@ -548,7 +581,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(29)
+    @Order(30)
     @DisplayName("测试删除用户 - 软删除成功")
     void testDeleteUser_SoftDelete_Success() throws Exception {
         Long userId = 1L;
@@ -564,7 +597,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(30)
+    @Order(31)
     @DisplayName("测试删除用户 - 硬删除成功")
     void testDeleteUser_HardDelete_Success() throws Exception {
         Long userId = 1L;
@@ -580,7 +613,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(31)
+    @Order(32)
     @DisplayName("测试删除用户 - 无效ID")
     void testDeleteUser_InvalidUserId() throws Exception {
         mockMvc.perform(delete("/api/users/{userId}", 0))
@@ -588,7 +621,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(32)
+    @Order(33)
     @DisplayName("测试获取活跃用户数 - 成功")
     void testCountActiveUsers_Success() throws Exception {
         long count = 100L;
@@ -603,7 +636,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(33)
+    @Order(34)
     @DisplayName("测试获取总用户数 - 成功")
     void testGetTotalUserCount_Success() throws Exception {
         long count = 150L;
@@ -618,7 +651,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(34)
+    @Order(35)
     @DisplayName("测试获取最近活跃用户列表 - 成功")
     void testGetRecentlyActiveUsers_Success() throws Exception {
         int limit = 10;
@@ -635,7 +668,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(35)
+    @Order(36)
     @DisplayName("测试获取最近活跃用户列表 - 限制数量超限")
     void testGetRecentlyActiveUsers_LimitExceeds() throws Exception {
         mockMvc.perform(get("/api/users/stats/recently-active")
@@ -644,7 +677,7 @@ class UserControllerTest {
     }
 
     @Test
-    @Order(36)
+    @Order(37)
     @DisplayName("测试获取最近活跃用户列表 - 限制数量为负数")
     void testGetRecentlyActiveUsers_NegativeLimit() throws Exception {
         mockMvc.perform(get("/api/users/stats/recently-active")

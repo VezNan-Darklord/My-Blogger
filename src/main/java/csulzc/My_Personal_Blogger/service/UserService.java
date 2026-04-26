@@ -7,6 +7,7 @@ import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class UserService {
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // ==================== 用户注册与登录 ====================
 
@@ -69,7 +71,7 @@ public class UserService {
      * 用户登录
      */
     @Transactional
-    public UserDetailDTO login(UserLoginRequest request) {
+    public LoginResponseDTO loginWithToken(UserLoginRequest request) {
         User user = findUserByLoginId(request.getLoginId());
 
         // 验证密码
@@ -89,8 +91,47 @@ public class UserService {
         user.setLastLoginAt(LocalDateTime.now());
         User updatedUser = userRepository.save(user);
 
-        return convertToDetailDTO(updatedUser);
+        // 生成Token
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername());
+
+        UserDetailDTO userDetailDTO = convertToDetailDTO(updatedUser);
+
+        return LoginResponseDTO.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtTokenProvider.getJwtProperties().getExpiration())
+                .user(userDetailDTO)
+                .build();
     }
+
+    public LoginResponseDTO refreshToken(String refreshToken) {
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("无效的刷新令牌");
+        }
+
+        Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+        String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
+
+        // 生成新的Token
+        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, username);
+
+        UserDetailDTO userDetailDTO = convertToDetailDTO(user);
+
+        return LoginResponseDTO.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtTokenProvider.getJwtProperties().getExpiration())
+                .user(userDetailDTO)
+                .build();
+    }
+
 
     /**
      * 根据登录标识查找用户（用户名或邮箱）

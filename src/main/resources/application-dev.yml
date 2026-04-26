@@ -19,6 +19,13 @@ spring:
       settings:
         web-allow-others: true
 
+jwt:
+  secret: my-personal-blog-secret-key-2026-must-be-changed-in-production-environment
+  expiration: 86400000
+  refresh-expiration: 604800000
+  token-prefix: "Bearer "
+  header: Authorization
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
