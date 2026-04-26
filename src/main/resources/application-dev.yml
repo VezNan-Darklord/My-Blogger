@@ -18,6 +18,11 @@ spring:
       path: /h2-console
       settings:
         web-allow-others: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+      enabled: true
 
 jwt:
   secret: my-personal-blog-secret-key-2026-must-be-changed-in-production-environment
@@ -25,6 +30,15 @@ jwt:
   refresh-expiration: 604800000
   token-prefix: "Bearer "
   header: Authorization
+
+file:
+  upload-dir: uploads
+  max-file-size: 5242880
+  allowed-file-types:
+    - image/jpeg
+    - image/png
+    - image/gif
+    - image/webp
 
 logging:
   level:
