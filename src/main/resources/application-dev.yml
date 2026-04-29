@@ -34,6 +34,16 @@ file:
     - image/gif
     - image/webp
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    disable-swagger-default-url: true
+  show-actuator: true
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
