@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:blogdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://localhost:3306/csulzc_blogdb_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: YuanZiqi222+++  # 修改为你的MySQL密码
   jpa:
     hibernate:
       ddl-auto: create-drop  # 开发时用create-drop，每次重启重置数据
@@ -12,12 +12,6 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
-  h2:
-    console:
-      enabled: true  # 启用H2控制台
-      path: /h2-console
-      settings:
-        web-allow-others: true
   servlet:
     multipart:
       max-file-size: 5MB
