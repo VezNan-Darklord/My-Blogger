@@ -138,6 +138,9 @@ public class UserController {
 
     /**
      * 获取所有用户（分页）
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sortBy 排序字段
      */
     @GetMapping
     public ResponseEntity<Result<PageResponseDTO<UserProfileDTO>>> getAllUsers(
@@ -156,6 +159,9 @@ public class UserController {
 
     /**
      * 搜索用户
+     * @param keyword 关键词
+     * @param page 页码（从0开始）
+     * @param size 每页大小
      */
     @GetMapping("/search")
     public ResponseEntity<Result<PageResponseDTO<UserProfileDTO>>> searchUsers(
