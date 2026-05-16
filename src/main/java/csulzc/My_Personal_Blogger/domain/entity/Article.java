@@ -46,6 +46,8 @@ public class Article extends BaseEntity
 
     private int favoriteCount = 0;
 
+    private int viewCount = 0;
+
     // 与其他类的关联关系（索引关系）
 
     @ManyToOne(fetch = FetchType.LAZY)

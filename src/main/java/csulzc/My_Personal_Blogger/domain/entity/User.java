@@ -48,9 +48,18 @@ public class User extends BaseEntity
     @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private UserRole role = UserRole.USER;
+
     public enum UserStatus
     {
         ACTIVE, INACTIVE, LOCKED
+    }
+
+    public enum UserRole
+    {
+        USER, ADMIN, SUPER_ADMIN
     }
 
     // 与其他类的关联关系（索引关系）

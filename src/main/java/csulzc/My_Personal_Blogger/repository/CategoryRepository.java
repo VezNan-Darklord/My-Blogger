@@ -29,5 +29,3 @@ public interface CategoryRepository extends BaseRepository<Category, Long> {
     @Query("SELECT c FROM Category c JOIN c.articles a WHERE a = :article")
     List<Category> findByArticle(@Param("article") Article article);
 }
-
-// TODO: 添加其测试类

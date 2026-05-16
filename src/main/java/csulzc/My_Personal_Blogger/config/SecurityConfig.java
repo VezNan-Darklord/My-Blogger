@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/files/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );
 
@@ -56,4 +57,6 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+
 }

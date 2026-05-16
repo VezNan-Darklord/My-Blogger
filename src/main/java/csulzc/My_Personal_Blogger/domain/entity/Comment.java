@@ -42,4 +42,6 @@ public class Comment extends BaseEntity {
     private List<Comment> replies = new ArrayList<>();
 
     private Integer likeCount;
+
+    private Boolean isApproved;
 }

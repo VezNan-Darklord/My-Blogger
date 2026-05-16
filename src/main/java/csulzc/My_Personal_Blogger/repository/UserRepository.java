@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.awt.print.Pageable;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -27,6 +28,11 @@ public interface UserRepository extends BaseRepository<User, Long> {
     // 5. 统计活跃用户
     @Query("SELECT COUNT(u) FROM User u WHERE u.status = :status")
     long countByStatus(@Param("status") User.UserStatus status);
-}
 
-// TODO: 添加其测试类
+    long countByCreatedAtAfter(LocalDateTime dateTime);
+
+    Optional<User> findByRole(User.UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
+    long countByRole(@Param("role") User.UserRole role);
+}

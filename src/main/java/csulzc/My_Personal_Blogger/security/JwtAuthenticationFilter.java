@@ -36,12 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
                 Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
                 String username = jwtTokenProvider.getUsernameFromToken(jwt);
+                String role = jwtTokenProvider.getRoleFromToken(jwt);
+
+                String authority = role != null ? role : "USER";
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userId,
                                 null,
-                                Collections.singletonList(new SimpleGrantedAuthority("USER"))
+                                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + authority))
                         );
 
                 authentication.setDetails(
@@ -50,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("用户认证成功: userId={}, username={}", userId, username);
+                log.debug("用户认证成功: userId={}, username={}, role={}", userId, username, authority);
             }
         } catch (Exception ex) {
             log.error("JWT认证处理失败", ex);

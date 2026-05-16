@@ -39,4 +39,12 @@ public interface ArticleRepository extends BaseRepository<Article, Long> {
     // 7. 批量查询（使用IN子句）
     @Query("SELECT a FROM Article a LEFT JOIN FETCH a.categories WHERE a.id IN :ids")
     List<Article> findByIdsWithCategories(@Param("ids") List<Long> ids);
+
+    long countByStatus(Article.ArticleStatus status);
+
+    @Query("SELECT SUM(a.likeCount) FROM Article a")
+    Long sumLikeCount();
+
+    @Query("SELECT SUM(a.viewCount) FROM Article a")
+    Long sumViewCount();
 }

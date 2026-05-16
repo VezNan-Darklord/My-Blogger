@@ -91,9 +91,10 @@ public class UserService {
         user.setLastLoginAt(LocalDateTime.now());
         User updatedUser = userRepository.save(user);
 
-        // 生成Token
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername());
+        // 生成Token（包含角色信息）
+        String role = updatedUser.getRole().name();
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), User.UserRole.valueOf(role), jwtTokenProvider.getJwtProperties().getExpiration());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername(), User.UserRole.valueOf(role), jwtTokenProvider.getJwtProperties().getRefreshExpiration());
 
         UserDetailDTO userDetailDTO = convertToDetailDTO(updatedUser);
 
@@ -117,9 +118,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
 
-        // 生成新的Token
-        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username);
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, username);
+        // 生成新的Token（包含角色信息）
+        String role = user.getRole().name();
+        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username, User.UserRole.valueOf(role), jwtTokenProvider.getJwtProperties().getExpiration());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, username, User.UserRole.valueOf(role), jwtTokenProvider.getJwtProperties().getRefreshExpiration());
 
         UserDetailDTO userDetailDTO = convertToDetailDTO(user);
 
@@ -535,5 +537,3 @@ public class UserService {
         return userRepository.findByEmail(email).isPresent();
     }
 }
-
-// TODO: 编写其测试类

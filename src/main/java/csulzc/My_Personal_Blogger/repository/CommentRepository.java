@@ -39,6 +39,6 @@ public interface CommentRepository extends BaseRepository<Comment, Long> {
     int deleteByArticle(@Param("article") Article article);
 
     long countByCommenter(User user);
-}
 
-// TODO: 添加其测试类
+    long countByIsApproved(boolean isApproved);
+}

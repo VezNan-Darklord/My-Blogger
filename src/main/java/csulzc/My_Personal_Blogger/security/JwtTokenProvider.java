@@ -1,6 +1,7 @@
 package csulzc.My_Personal_Blogger.security;
 
 import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.domain.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +24,14 @@ public class JwtTokenProvider {
     /**
      * 生成访问令牌
      */
-    public String generateAccessToken(Long userId, String username) {
+    public String generateAccessToken(Long userId, String username, User.UserRole role, long expiration) {
         return generateToken(userId, username, jwtProperties.getExpiration());
     }
 
     /**
      * 生成刷新令牌
      */
-    public String generateRefreshToken(Long userId, String username) {
+    public String generateRefreshToken(Long userId, String username, User.UserRole role, long expiration) {
         return generateToken(userId, username, jwtProperties.getRefreshExpiration());
     }
 
@@ -44,6 +45,27 @@ public class JwtTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+
+        SecretKey key = getSigningKey();
+
+        return Jwts.builder()
+                .claims(claims)
+                .subject(username)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
+    }
+
+    public String generateToken(Long userId, String username, String role, long expiration)
+    {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("username", username);
+        claims.put("role", role);
 
         SecretKey key = getSigningKey();
 
@@ -70,6 +92,14 @@ public class JwtTokenProvider {
     public String getUsernameFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.getSubject();
+    }
+
+    /**
+     * 从令牌中获取用户角色
+     */
+    public String getRoleFromToken(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("role", String.class);
     }
 
     /**

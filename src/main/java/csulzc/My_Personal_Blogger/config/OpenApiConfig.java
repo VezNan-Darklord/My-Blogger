@@ -22,16 +22,14 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("林子诚")
-                                .email("your-email@example.com"))
+                                .email("941435991@qq.com"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
                 .servers(List.of(
                         new Server()
                                 .url("http://localhost:8080")
-                                .description("本地开发环境"),
-                        new Server()
-                                .url("https://your-production-domain.com")
-                                .description("生产环境")));
+                                .description("本地开发环境")
+                        ));
     }
 }
