@@ -4,6 +4,7 @@ import csulzc.My_Personal_Blogger.config.JwtProperties;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -146,7 +148,4 @@ public class JwtTokenProvider {
         return null;
     }
 
-    public JwtProperties getJwtProperties() {
-        return jwtProperties;
-    }
 }

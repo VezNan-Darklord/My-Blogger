@@ -1,6 +1,7 @@
 package csulzc.My_Personal_Blogger.security;
 
 import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.domain.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,12 +24,14 @@ class JwtTokenProviderTest {
     private static String testToken;
     private static final Long TEST_USER_ID = 1L;
     private static final String TEST_USERNAME = "testuser";
+    private static final User.UserRole TEST_USER_ROLE = User.UserRole.USER;
+    private static final long TEST_EXPIRATION = 86400000L;
 
     @Test
     @Order(1)
     @DisplayName("测试生成访问令牌")
     void testGenerateAccessToken() {
-        testToken = jwtTokenProvider.generateAccessToken(TEST_USER_ID, TEST_USERNAME);
+        testToken = jwtTokenProvider.generateAccessToken(TEST_USER_ID, TEST_USERNAME, TEST_USER_ROLE, TEST_EXPIRATION);
 
         assertThat(testToken).isNotNull();
         assertThat(testToken).isNotEmpty();
@@ -71,7 +74,7 @@ class JwtTokenProviderTest {
     @Order(6)
     @DisplayName("测试生成刷新令牌")
     void testGenerateRefreshToken() {
-        String refreshToken = jwtTokenProvider.generateRefreshToken(TEST_USER_ID, TEST_USERNAME);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(TEST_USER_ID, TEST_USERNAME, TEST_USER_ROLE, TEST_EXPIRATION);
 
         assertThat(refreshToken).isNotNull();
         assertThat(refreshToken).isNotEmpty();
