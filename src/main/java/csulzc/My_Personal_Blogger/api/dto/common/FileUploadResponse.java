@@ -18,4 +18,6 @@ public class FileUploadResponse {
     private String fileType;
 
     private long fileSize;
+
+    private String base64Data; // Base64编码数据（可选）
 }

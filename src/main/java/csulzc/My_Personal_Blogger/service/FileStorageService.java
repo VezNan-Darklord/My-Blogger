@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.UUID;
 
 @Service
@@ -134,5 +135,66 @@ public class FileStorageService {
             return "";
         }
         return fileName.substring(lastDotIndex).toLowerCase();
+    }
+
+    /**
+     * 将文件转换为Base64编码
+     */
+    public String encodeFileToBase64(String fileName) {
+        try {
+            Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            byte[] fileContent = Files.readAllBytes(filePath);
+            return Base64.getEncoder().encodeToString(fileContent);
+        } catch (IOException ex) {
+            throw new RuntimeException("文件转Base64失败: " + fileName, ex);
+        }
+    }
+
+    /**
+     * 将Base64字符串解码并保存为文件
+     */
+    public String decodeBase64ToFile(String base64Data, String originalFileName) {
+        try {
+            // 移除可能的data URI前缀（如：data:image/jpeg;base64,）
+            String base64Content = base64Data;
+            if (base64Data.contains(",")) {
+                base64Content = base64Data.split(",", 2)[1];
+            }
+
+            // 解码Base64数据
+            byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
+
+            // 生成新文件名
+            String fileExtension = getFileExtension(originalFileName);
+            if (fileExtension.isEmpty()) {
+                // 如果没有扩展名，尝试从MIME类型推断
+                fileExtension = getFileExtensionFromMimeType(base64Data);
+            }
+            String newFileName = UUID.randomUUID().toString() + fileExtension;
+
+            // 保存文件
+            Path targetLocation = this.fileStorageLocation.resolve(newFileName);
+            Files.write(targetLocation, decodedBytes);
+
+            return newFileName;
+        } catch (IOException ex) {
+            throw new RuntimeException("Base64转文件失败", ex);
+        }
+    }
+
+    /**
+     * 从MIME类型获取文件扩展名
+     */
+    private String getFileExtensionFromMimeType(String mimeType) {
+        if (mimeType.contains("image/jpeg")) {
+            return ".jpg";
+        } else if (mimeType.contains("image/png")) {
+            return ".png";
+        } else if (mimeType.contains("image/gif")) {
+            return ".gif";
+        } else if (mimeType.contains("image/webp")) {
+            return ".webp";
+        }
+        return ""; // 默认无扩展名
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -119,5 +120,86 @@ public class FileStorageServiceTest {
         assertThatThrownBy(() -> fileStorageService.loadFileAsResource("non-existent.jpg"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("文件不存在");
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("测试文件转Base64编码 - 成功")
+    void testEncodeFileToBase64_Success() throws Exception {
+        // 先上传一个文件
+        byte[] content = "test image content".getBytes();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "test-base64.jpg",
+                "image/jpeg",
+                content
+        );
+        String fileName = fileStorageService.storeFile(file);
+
+        // 将文件转换为Base64
+        String base64Data = fileStorageService.encodeFileToBase64(fileName);
+
+        assertThat(base64Data).isNotNull();
+        assertThat(base64Data).isNotEmpty();
+
+        // 验证Base64解码后与原始内容一致
+        byte[] decodedBytes = Base64.getDecoder().decode(base64Data);
+        assertThat(decodedBytes).isEqualTo(content);
+
+        // 清理测试文件
+        fileStorageService.deleteFile(fileName);
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("测试Base64解码并保存为文件 - 成功")
+    void testDecodeBase64ToFile_Success() {
+        // 准备Base64数据
+        String originalContent = "test base64 image content";
+        String base64Data = Base64.getEncoder().encodeToString(originalContent.getBytes());
+
+        // 将Base64解码并保存为文件
+        String fileName = fileStorageService.decodeBase64ToFile(base64Data, "test-decode.jpg");
+
+        assertThat(fileName).isNotNull();
+        assertThat(fileName).endsWith(".jpg");
+
+        // 验证文件已保存
+        Path filePath = Paths.get(fileStorageProperties.getUploadDir()).resolve(fileName);
+        assertThat(Files.exists(filePath)).isTrue();
+
+        // 验证文件内容
+        try {
+            byte[] savedContent = Files.readAllBytes(filePath);
+            assertThat(new String(savedContent)).isEqualTo(originalContent);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // 清理测试文件
+        fileStorageService.deleteFile(fileName);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("测试带data URI前缀的Base64解码 - 成功")
+    void testDecodeBase64WithDataUriPrefix_Success() {
+        // 准备带data URI前缀的Base64数据
+        String originalContent = "test with data uri prefix";
+        String base64Data = Base64.getEncoder().encodeToString(originalContent.getBytes());
+        String dataUri = "data:image/png;base64," + base64Data;
+
+        // 将Base64解码并保存为文件
+        String fileName = fileStorageService.decodeBase64ToFile(dataUri, "test-datauri.png");
+
+        assertThat(fileName).isNotNull();
+        assertThat(fileName).endsWith(".png");
+
+        // 验证文件已保存
+        Path filePath = Paths.get(fileStorageProperties.getUploadDir()).resolve(fileName);
+        assertThat(Files.exists(filePath)).isTrue();
+
+        // 清理测试文件
+        fileStorageService.deleteFile(fileName);
     }
 }
