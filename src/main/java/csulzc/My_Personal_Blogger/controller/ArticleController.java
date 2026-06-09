@@ -5,90 +5,73 @@ import csulzc.My_Personal_Blogger.api.dto.common.PageRequestDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.service.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/articles")
 @RequiredArgsConstructor
+@Tag(name = "文章管理", description = "文章CRUD及发布归档操作")
 public class ArticleController {
 
     private final ArticleService articleService;
     private final UserService userService;
 
-    /**
-     * 创建文章
-     */
     @PostMapping
+    @Operation(summary = "创建文章", description = "需要登录，自动使用当前用户作为作者")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<ArticleDetailDTO>> createArticle(
-            @Valid @RequestBody ArticleCreateRequest request,
-            @RequestParam Long authorId) {
-        if (authorId == null || authorId <= 0) {
-            throw new IllegalArgumentException("作者ID无效");
-        }
-        ArticleDetailDTO article = articleService.createArticle(request, authorId);
+            @Valid @RequestBody ArticleCreateRequest request) {
+        ArticleDetailDTO article = articleService.createArticle(request);
         return ResponseEntity.ok(Result.success(article, "文章创建成功"));
     }
 
-    /**
-     * 更新文章
-     */
     @PutMapping("/{articleId}")
+    @Operation(summary = "更新文章", description = "需要登录且为文章作者或管理员")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<ArticleDetailDTO>> updateArticle(
             @PathVariable Long articleId,
-            @Valid @RequestBody ArticleUpdateRequest request,
-            @RequestParam Long userId) {
+            @Valid @RequestBody ArticleUpdateRequest request) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
         }
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("用户ID无效");
-        }
-        ArticleDetailDTO article = articleService.updateArticle(articleId, request, userId);
+        ArticleDetailDTO article = articleService.updateArticle(articleId, request);
         return ResponseEntity.ok(Result.success(article, "文章更新成功"));
     }
 
-    /**
-     * 发布文章
-     */
     @PostMapping("/{articleId}/publish")
+    @Operation(summary = "发布文章", description = "需要登录且为文章作者或管理员")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<ArticleDetailDTO>> publishArticle(
-            @PathVariable Long articleId,
-            @RequestParam Long userId) {
+            @PathVariable Long articleId) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
         }
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("用户ID无效");
-        }
-        ArticleDetailDTO article = articleService.publishArticle(articleId, userId);
+        ArticleDetailDTO article = articleService.publishArticle(articleId);
         return ResponseEntity.ok(Result.success(article, "文章发布成功"));
     }
 
-    /**
-     * 归档文章
-     */
     @PostMapping("/{articleId}/archive")
+    @Operation(summary = "归档文章", description = "需要登录且为文章作者或管理员")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<ArticleDetailDTO>> archiveArticle(
-            @PathVariable Long articleId,
-            @RequestParam Long userId) {
+            @PathVariable Long articleId) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
         }
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("用户ID无效");
-        }
-        ArticleDetailDTO article = articleService.archiveArticle(articleId, userId);
+        ArticleDetailDTO article = articleService.archiveArticle(articleId);
         return ResponseEntity.ok(Result.success(article, "文章归档成功"));
     }
 
-    /**
-     * 获取文章详情
-     */
     @GetMapping("/{articleId}")
+    @Operation(summary = "获取文章详情", description = "公开访问")
     public ResponseEntity<Result<ArticleDetailDTO>> getArticleById(@PathVariable Long articleId) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
@@ -97,10 +80,8 @@ public class ArticleController {
         return ResponseEntity.ok(Result.success(article));
     }
 
-    /**
-     * 获取文章列表（分页）
-     */
     @GetMapping
+    @Operation(summary = "获取文章列表", description = "公开访问，支持分页")
     public ResponseEntity<Result<PageResponseDTO<ArticleListItemDTO>>> getArticleList(
             @ModelAttribute PageRequestDTO pageRequest) {
         if (pageRequest == null) {
@@ -117,10 +98,8 @@ public class ArticleController {
         return ResponseEntity.ok(Result.success(articles));
     }
 
-    /**
-     * 根据作者获取文章列表
-     */
     @GetMapping("/author/{authorId}")
+    @Operation(summary = "获取作者的文章列表", description = "公开访问")
     public ResponseEntity<Result<PageResponseDTO<ArticleListItemDTO>>> getArticlesByAuthor(
             @PathVariable Long authorId,
             @ModelAttribute PageRequestDTO pageRequest) {
@@ -149,10 +128,8 @@ public class ArticleController {
         return ResponseEntity.ok(Result.success(articles));
     }
 
-    /**
-     * 搜索文章
-     */
     @GetMapping("/search")
+    @Operation(summary = "搜索文章", description = "公开访问")
     public ResponseEntity<Result<PageResponseDTO<ArticleListItemDTO>>> searchArticles(
             @RequestParam String keyword,
             @ModelAttribute PageRequestDTO pageRequest) {
@@ -173,20 +150,15 @@ public class ArticleController {
         return ResponseEntity.ok(Result.success(articles));
     }
 
-    /**
-     * 删除文章
-     */
     @DeleteMapping("/{articleId}")
+    @Operation(summary = "删除文章", description = "需要登录且为文章作者或管理员")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<Void>> deleteArticle(
-            @PathVariable Long articleId,
-            @RequestParam Long userId) {
+            @PathVariable Long articleId) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
         }
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("用户ID无效");
-        }
-        articleService.deleteArticle(articleId, userId);
+        articleService.deleteArticle(articleId);
         return ResponseEntity.ok(Result.success(null, "文章删除成功"));
     }
 }

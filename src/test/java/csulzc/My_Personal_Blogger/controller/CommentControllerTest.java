@@ -6,9 +6,14 @@ import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentReplyDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
+import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.repository.UserRepository;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.service.CommentService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -33,7 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CommentController.class)
 @DisplayName("CommentController 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import(CommentControllerTest.TestSecurityConfig.class)
+@Import({CommentControllerTest.TestSecurityConfig.class, SecurityContextUtil.class, JwtTokenProvider.class})
+@EnableConfigurationProperties(JwtProperties.class)
 class CommentControllerTest {
 
     @TestConfiguration
@@ -58,6 +64,12 @@ class CommentControllerTest {
 
     @MockBean
     private CommentService commentService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockBean
+    private UserRepository userRepository;
 
     private CommentCreateRequest createRequest;
     private CommentDTO commentDTO;
@@ -105,7 +117,7 @@ class CommentControllerTest {
     @Order(1)
     @DisplayName("测试创建评论 - 成功")
     void testCreateComment_Success() throws Exception {
-        given(commentService.createComment(eq(1L), eq(1L), any(CommentCreateRequest.class)))
+        given(commentService.createComment(eq(1L), any(CommentCreateRequest.class)))
                 .willReturn(commentDTO);
 
         mockMvc.perform(post("/api/comments/article/{articleId}", 1L)
@@ -117,7 +129,7 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$.message").value("评论发表成功"))
                 .andExpect(jsonPath("$.data.content").value("这是一条测试评论"));
 
-        then(commentService).should().createComment(eq(1L), eq(1L), any(CommentCreateRequest.class));
+        then(commentService).should().createComment(eq(1L), any(CommentCreateRequest.class));
     }
 
     @Test
@@ -148,17 +160,6 @@ class CommentControllerTest {
 
     @Test
     @Order(4)
-    @DisplayName("测试创建评论 - 评论者ID无效")
-    void testCreateComment_InvalidCommenterId() throws Exception {
-        mockMvc.perform(post("/api/comments/article/{articleId}", 1L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .param("commenterId", "-1")
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @Order(5)
     @DisplayName("测试获取评论详情 - 成功")
     void testGetCommentById_Success() throws Exception {
         Long commentId = 1L;
@@ -175,7 +176,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(6)
+    @Order(5)
     @DisplayName("测试获取评论详情 - 无效ID")
     void testGetCommentById_InvalidId() throws Exception {
         mockMvc.perform(get("/api/comments/{commentId}", -1))
@@ -183,7 +184,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(7)
+    @Order(6)
     @DisplayName("测试获取文章的顶级评论列表 - 成功")
     void testGetTopLevelComments_Success() throws Exception {
         PageResponseDTO<CommentDTO> pageResponse = PageResponseDTO.<CommentDTO>builder()
@@ -210,7 +211,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(8)
+    @Order(7)
     @DisplayName("测试获取文章的顶级评论列表 - 页码为负数")
     void testGetTopLevelComments_NegativePage() throws Exception {
         mockMvc.perform(get("/api/comments/article/{articleId}", 1L)
@@ -220,7 +221,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(9)
+    @Order(8)
     @DisplayName("测试获取文章的顶级评论列表 - 每页大小超限")
     void testGetTopLevelComments_SizeExceedsLimit() throws Exception {
         mockMvc.perform(get("/api/comments/article/{articleId}", 1L)
@@ -230,7 +231,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(10)
+    @Order(9)
     @DisplayName("测试获取评论的回复列表 - 成功")
     void testGetCommentReplies_Success() throws Exception {
         PageResponseDTO<CommentReplyDTO> pageResponse = PageResponseDTO.<CommentReplyDTO>builder()
@@ -256,7 +257,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(11)
+    @Order(10)
     @DisplayName("测试获取评论的回复列表 - 无效评论ID")
     void testGetCommentReplies_InvalidCommentId() throws Exception {
         mockMvc.perform(get("/api/comments/{commentId}/replies", -1)
@@ -266,7 +267,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(12)
+    @Order(11)
     @DisplayName("测试获取用户的评论列表 - 成功")
     void testGetUserComments_Success() throws Exception {
         PageResponseDTO<CommentDTO> pageResponse = PageResponseDTO.<CommentDTO>builder()
@@ -292,7 +293,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(13)
+    @Order(12)
     @DisplayName("测试获取用户的评论列表 - 无效用户ID")
     void testGetUserComments_InvalidUserId() throws Exception {
         mockMvc.perform(get("/api/comments/user/{userId}", 0)
@@ -302,12 +303,12 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(14)
+    @Order(13)
     @DisplayName("测试删除评论 - 成功")
     void testDeleteComment_Success() throws Exception {
         Long commentId = 1L;
         Long userId = 1L;
-        doNothing().when(commentService).deleteComment(eq(commentId), eq(userId));
+        doNothing().when(commentService).deleteComment(eq(commentId));
 
         mockMvc.perform(delete("/api/comments/{commentId}", commentId)
                         .param("userId", String.valueOf(userId)))
@@ -315,11 +316,11 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("评论删除成功"));
 
-        then(commentService).should().deleteComment(eq(commentId), eq(userId));
+        then(commentService).should().deleteComment(eq(commentId));
     }
 
     @Test
-    @Order(15)
+    @Order(14)
     @DisplayName("测试删除评论 - 无效评论ID")
     void testDeleteComment_InvalidCommentId() throws Exception {
         mockMvc.perform(delete("/api/comments/{commentId}", -1)
@@ -328,16 +329,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(16)
-    @DisplayName("测试删除评论 - 无效用户ID")
-    void testDeleteComment_InvalidUserId() throws Exception {
-        mockMvc.perform(delete("/api/comments/{commentId}", 1)
-                        .param("userId", "0"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @Order(17)
+    @Order(15)
     @DisplayName("测试统计文章评论数 - 成功")
     void testCountCommentsByArticle_Success() throws Exception {
         Long articleId = 1L;
@@ -353,7 +345,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(18)
+    @Order(16)
     @DisplayName("测试统计文章评论数 - 无效文章ID")
     void testCountCommentsByArticle_InvalidArticleId() throws Exception {
         mockMvc.perform(get("/api/comments/article/{articleId}/count", -1))
@@ -361,7 +353,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(19)
+    @Order(17)
     @DisplayName("测试统计用户评论数 - 成功")
     void testCountCommentsByUser_Success() throws Exception {
         Long userId = 1L;
@@ -377,7 +369,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @Order(20)
+    @Order(18)
     @DisplayName("测试统计用户评论数 - 无效用户ID")
     void testCountCommentsByUser_InvalidUserId() throws Exception {
         mockMvc.perform(get("/api/comments/user/{userId}/count", 0))

@@ -11,6 +11,7 @@ import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
+    private final SecurityContextUtil securityContextUtil;
 
     // ==================== 评论创建与删除 ====================
 
@@ -39,27 +41,21 @@ public class CommentService {
      * 创建评论（包括回复）
      */
     @Transactional
-    public CommentDTO createComment(Long articleId, Long commenterId, CommentCreateRequest request) {
-        // 获取文章
+    public CommentDTO createComment(Long articleId, CommentCreateRequest request) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
-        // 获取评论者
-        User commenter = userRepository.findById(commenterId)
-                .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
+        User commenter = securityContextUtil.getCurrentUserAndValidateStatus();
 
-        // 构建评论实体
         Comment.CommentBuilder commentBuilder = Comment.builder()
                 .content(request.getContent())
                 .article(article)
                 .commenter(commenter);
 
-        // 如果是回复评论，设置父评论
         if (request.getParentCommentId() != null) {
             Comment parentComment = commentRepository.findById(request.getParentCommentId())
                     .orElseThrow(() -> new EntityNotFoundException("父评论不存在"));
 
-            // 验证父评论是否属于同一篇文章
             if (!parentComment.getArticle().getId().equals(articleId)) {
                 throw new IllegalArgumentException("父评论不属于此文章");
             }
@@ -77,16 +73,12 @@ public class CommentService {
      * 删除评论
      */
     @Transactional
-    public void deleteComment(Long commentId, Long userId) {
+    public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("评论不存在"));
 
-        // 检查权限（只有评论者可以删除）
-        if (!comment.getCommenter().getId().equals(userId)) {
-            throw new RuntimeException("无权限删除此评论");
-        }
+        securityContextUtil.validateOwnershipOrAdmin(comment.getCommenter().getId(), "评论");
 
-        // 如果有父评论，需要从父评论的回复列表中移除
         Comment parentComment = comment.getParentComment();
         if (parentComment != null) {
             parentComment.getReplies().remove(comment);

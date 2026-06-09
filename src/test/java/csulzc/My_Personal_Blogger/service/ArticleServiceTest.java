@@ -4,13 +4,17 @@ import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.api.dto.article.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 
@@ -21,10 +25,11 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({ArticleService.class, CategoryService.class})
+@Import({ArticleService.class, CategoryService.class, SecurityContextUtil.class})
 @DisplayName("ArticleService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ArticleServiceTest {
@@ -43,6 +48,9 @@ public class ArticleServiceTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SecurityContextUtil securityContextUtil;
+
     private ArticleCreateRequest articleCreateRequest;
     private ArticleUpdateRequest articleUpdateRequest;
     private ArticleDetailDTO articleDetailDTO;
@@ -54,10 +62,16 @@ public class ArticleServiceTest {
     private User testUser;
     private Category testCategory;
 
+    private void setCurrentUser(Long userId) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+
     @BeforeEach
     void setUp()
     {
-        // 创建测试用户
         testUser = User.builder()
                 .username("testuser")
                 .email("test@example.com")
@@ -68,14 +82,12 @@ public class ArticleServiceTest {
         entityManager.persist(testUser);
         testUserId = testUser.getId();
 
-        // 创建测试分类
         testCategory = Category.builder()
                 .name("测试分类")
                 .description("这是测试分类的描述")
                 .build();
         entityManager.persist(testCategory);
 
-        // 创建测试文章
         testArticle = Article.builder()
                 .title("测试文章")
                 .content("这是测试文章的内容")
@@ -90,7 +102,6 @@ public class ArticleServiceTest {
         entityManager.persist(testArticle);
         testArticleId = testArticle.getId();
 
-        // 准备 DTO 对象
         articleCreateRequest = ArticleCreateRequest.builder()
                 .title("测试文章")
                 .content("这是测试文章的内容")
@@ -166,24 +177,23 @@ public class ArticleServiceTest {
                 .commentCount(0)
                 .favoriteCount(0)
                 .build();
+
+        setCurrentUser(testUserId);
     }
 
     @AfterEach
     void tearDown()
     {
         entityManager.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     @Order(1)
     @DisplayName("测试创建文章 - 成功")
     void testCreateArticle_Success() {
-        // Given - 准备数据（已在 setUp 中准备）
+        ArticleDetailDTO result = articleService.createArticle(articleCreateRequest);
 
-        // When - 执行创建操作
-        ArticleDetailDTO result = articleService.createArticle(articleCreateRequest, testUserId);
-
-        // Then - 验证结果
         assertNotNull(result);
         assertEquals("测试文章", result.getTitle());
         assertEquals("这是测试文章的内容", result.getContent());
@@ -196,13 +206,10 @@ public class ArticleServiceTest {
     @Order(2)
     @DisplayName("测试更新文章 - 成功")
     void testUpdateArticle_Success() {
-        // Given
         Long articleId = testArticleId;
 
-        // When - 执行更新操作
-        ArticleDetailDTO result = articleService.updateArticle(articleId, articleUpdateRequest, testUserId);
+        ArticleDetailDTO result = articleService.updateArticle(articleId, articleUpdateRequest);
 
-        // Then - 验证结果
         assertNotNull(result);
         assertEquals("更新后的标题", result.getTitle());
         assertEquals("这是更新后的内容", result.getContent());
@@ -213,12 +220,10 @@ public class ArticleServiceTest {
     @Order(3)
     @DisplayName("测试更新文章 - 文章不存在")
     void testUpdateArticle_NotFound() {
-        // Given
         Long nonExistentId = 999L;
 
-        // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            articleService.updateArticle(nonExistentId, articleUpdateRequest, testUserId);
+            articleService.updateArticle(nonExistentId, articleUpdateRequest);
         });
     }
 
@@ -226,13 +231,13 @@ public class ArticleServiceTest {
     @Order(4)
     @DisplayName("测试更新文章 - 无权限")
     void testUpdateArticle_NoPermission() {
-        // Given
         Long anotherUserId = 999L;
         Long articleId = testArticleId;
 
-        // When & Then - 应该抛出权限异常
-        assertThrows(RuntimeException.class, () -> {
-            articleService.updateArticle(articleId, articleUpdateRequest, anotherUserId);
+        setCurrentUser(anotherUserId);
+
+        assertThrows(SecurityException.class, () -> {
+            articleService.updateArticle(articleId, articleUpdateRequest);
         });
     }
 
@@ -240,13 +245,10 @@ public class ArticleServiceTest {
     @Order(5)
     @DisplayName("测试发布文章 - 成功")
     void testPublishArticle_Success() {
-        // Given
         Long articleId = testArticleId;
 
-        // When - 执行发布操作
-        ArticleDetailDTO result = articleService.publishArticle(articleId, testUserId);
+        ArticleDetailDTO result = articleService.publishArticle(articleId);
 
-        // Then - 验证状态已变更
         assertNotNull(result);
         assertEquals(Article.ArticleStatus.RELEASE, result.getStatus());
     }
@@ -255,12 +257,10 @@ public class ArticleServiceTest {
     @Order(6)
     @DisplayName("测试发布文章 - 文章不存在")
     void testPublishArticle_NotFound() {
-        // Given
         Long nonExistentId = 999L;
 
-        // When & Then
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            articleService.publishArticle(nonExistentId, testUserId);
+            articleService.publishArticle(nonExistentId);
         });
     }
 
@@ -268,13 +268,10 @@ public class ArticleServiceTest {
     @Order(7)
     @DisplayName("测试归档文章 - 成功")
     void testArchiveArticle_Success() {
-        // Given
         Long articleId = testArticleId;
 
-        // When - 执行归档操作
-        ArticleDetailDTO result = articleService.archiveArticle(articleId, testUserId);
+        ArticleDetailDTO result = articleService.archiveArticle(articleId);
 
-        // Then - 验证状态已变更
         assertNotNull(result);
         assertEquals(Article.ArticleStatus.ARCHIVE, result.getStatus());
     }
@@ -283,13 +280,13 @@ public class ArticleServiceTest {
     @Order(8)
     @DisplayName("测试归档文章 - 无权限")
     void testArchiveArticle_NoPermission() {
-        // Given
         Long articleId = testArticleId;
         Long anotherUserId = 999L;
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> {
-            articleService.archiveArticle(articleId, anotherUserId);
+        setCurrentUser(anotherUserId);
+
+        assertThrows(SecurityException.class, () -> {
+            articleService.archiveArticle(articleId);
         });
     }
 
@@ -297,13 +294,10 @@ public class ArticleServiceTest {
     @Order(9)
     @DisplayName("测试根据 ID 获取文章详情")
     void testGetArticleById() {
-        // Given
         Long articleId = testArticleId;
 
-        // When - 获取文章详情
         ArticleDetailDTO result = articleService.getArticleById(articleId);
 
-        // Then - 验证结果
         assertNotNull(result);
         assertEquals("测试文章", result.getTitle());
         assertEquals(testUserId, result.getAuthor().getId());
@@ -313,7 +307,6 @@ public class ArticleServiceTest {
     @Order(10)
     @DisplayName("测试获取文章列表")
     void testGetArticleList() {
-        // Given - 创建更多文章
         for (int i = 1; i <= 5; i++) {
             Article article = Article.builder()
                     .title("测试文章" + i)
@@ -325,14 +318,12 @@ public class ArticleServiceTest {
         }
         entityManager.flush();
 
-        // When - 分页查询
         Pageable pageable = PageRequest.of(0, 3);
         var result = articleService.getArticleList(pageable);
 
-        // Then - 验证结果
         assertNotNull(result);
         assertThat(result.getContent()).hasSize(3);
-        assertThat(result.getTotalElements()).isEqualTo(6); // setUp 中的 1 篇 + 新加的 5 篇
+        assertThat(result.getTotalElements()).isEqualTo(6);
         assertThat(result.getTotalPages()).isEqualTo(2);
     }
 
@@ -340,7 +331,6 @@ public class ArticleServiceTest {
     @Order(11)
     @DisplayName("测试根据作者获取文章列表")
     void testGetArticlesByAuthor() {
-        // Given - 创建更多文章
         for (int i = 1; i <= 3; i++) {
             Article article = Article.builder()
                     .title("作者文章" + i)
@@ -352,20 +342,17 @@ public class ArticleServiceTest {
         }
         entityManager.flush();
 
-        // When
         Pageable pageable = PageRequest.of(0, 10);
         var result = articleService.getArticlesByAuthor(testUser, pageable);
 
-        // Then
         assertNotNull(result);
-        assertThat(result.getContent()).hasSize(4); // setUp 中的 1 篇 + 新加的 3 篇
+        assertThat(result.getContent()).hasSize(4);
     }
 
     @Test
     @Order(12)
     @DisplayName("测试搜索文章")
     void testSearchArticles() {
-        // Given - 创建不同标题的文章
         Article springArticle = Article.builder()
                 .title("Spring Boot 教程")
                 .content("内容")
@@ -381,11 +368,9 @@ public class ArticleServiceTest {
         entityManager.persist(javaArticle);
         entityManager.flush();
 
-        // When - 搜索包含"Spring"的文章
         Pageable pageable = PageRequest.of(0, 10);
         var result = articleService.searchArticles("Spring", pageable);
 
-        // Then
         assertNotNull(result);
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getTitle()).contains("Spring");
@@ -395,13 +380,10 @@ public class ArticleServiceTest {
     @Order(13)
     @DisplayName("测试删除文章 - 成功")
     void testDeleteArticle_Success() {
-        // Given
         Long articleId = testArticleId;
 
-        // When - 执行删除操作
-        articleService.deleteArticle(articleId, testUserId);
+        articleService.deleteArticle(articleId);
 
-        // Then - 验证文章已被删除
         Optional<Article> deleted = articleRepository.findById(articleId);
         assertThat(deleted).isEmpty();
     }
@@ -410,12 +392,10 @@ public class ArticleServiceTest {
     @Order(14)
     @DisplayName("测试删除文章 - 文章不存在")
     void testDeleteArticle_NotFound() {
-        // Given
         Long nonExistentId = 999L;
 
-        // When & Then
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            articleService.deleteArticle(nonExistentId, testUserId);
+            articleService.deleteArticle(nonExistentId);
         });
     }
 
@@ -423,13 +403,13 @@ public class ArticleServiceTest {
     @Order(15)
     @DisplayName("测试删除文章 - 无权限")
     void testDeleteArticle_NoPermission() {
-        // Given
         Long articleId = testArticleId;
         Long anotherUserId = 999L;
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> {
-            articleService.deleteArticle(articleId, anotherUserId);
+        setCurrentUser(anotherUserId);
+
+        assertThrows(SecurityException.class, () -> {
+            articleService.deleteArticle(articleId);
         });
     }
 
@@ -437,16 +417,14 @@ public class ArticleServiceTest {
     @Order(16)
     @DisplayName("测试创建文章 - 分类不存在")
     void testCreateArticle_CategoryNotFound() {
-        // Given - 使用不存在的分类 ID
         ArticleCreateRequest invalidRequest = ArticleCreateRequest.builder()
                 .title("测试文章")
                 .content("这是测试文章的内容")
-                .categoryIds(Set.of(999L))  // 不存在的分类 ID
+                .categoryIds(Set.of(999L))
                 .build();
 
-        // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            articleService.createArticle(invalidRequest, testUserId);
+            articleService.createArticle(invalidRequest);
         });
     }
 
@@ -454,7 +432,6 @@ public class ArticleServiceTest {
     @Order(17)
     @DisplayName("测试创建多篇文章并验证分页")
     void testCreateMultipleArticlesWithPagination() {
-        // Given - 创建 10 篇文章
         for (int i = 0; i < 10; i++) {
             ArticleCreateRequest request = ArticleCreateRequest.builder()
                     .title("批量文章" + i)
@@ -462,15 +439,13 @@ public class ArticleServiceTest {
                     .categoryIds(Set.of(testCategory.getId()))
                     .status(Article.ArticleStatus.RELEASE)
                     .build();
-            articleService.createArticle(request, testUserId);
+            articleService.createArticle(request);
         }
         entityManager.flush();
 
-        // When - 查询第 2 页
         Pageable pageable = PageRequest.of(1, 5);
         var result = articleService.getArticleList(pageable);
 
-        // Then
         assertThat(result.getContent()).hasSize(5);
         assertThat(result.getPage()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(5);
@@ -480,23 +455,19 @@ public class ArticleServiceTest {
     @Order(18)
     @DisplayName("测试文章状态流转")
     void testArticleStatusTransition() {
-        // Given - 创建草稿文章
         ArticleCreateRequest draftRequest = ArticleCreateRequest.builder()
                 .title("状态流转测试")
                 .content("这是用于测试状态流转的文章内容")
                 .categoryIds(Set.of(testCategory.getId()))
                 .status(Article.ArticleStatus.DRAFT)
                 .build();
-        ArticleDetailDTO draftArticle = articleService.createArticle(draftRequest, testUserId);
+        ArticleDetailDTO draftArticle = articleService.createArticle(draftRequest);
         Long articleId = draftArticle.getId();
 
-        // When & Then - 验证状态流转
-        // 1. DRAFT -> RELEASE
-        ArticleDetailDTO releasedArticle = articleService.publishArticle(articleId, testUserId);
+        ArticleDetailDTO releasedArticle = articleService.publishArticle(articleId);
         assertThat(releasedArticle.getStatus()).isEqualTo(Article.ArticleStatus.RELEASE);
 
-        // 2. RELEASE -> ARCHIVE
-        ArticleDetailDTO archivedArticle = articleService.archiveArticle(articleId, testUserId);
+        ArticleDetailDTO archivedArticle = articleService.archiveArticle(articleId);
         assertThat(archivedArticle.getStatus()).isEqualTo(Article.ArticleStatus.ARCHIVE);
     }
 
@@ -504,33 +475,27 @@ public class ArticleServiceTest {
     @Order(19)
     @DisplayName("测试更新文章的部分字段")
     void testUpdateArticlePartialFields() {
-        // Given
         ArticleUpdateRequest partialUpdate = ArticleUpdateRequest.builder()
                 .title("只更新标题")
                 .build();
         Long articleId = testArticleId;
 
-        // When
-        ArticleDetailDTO result = articleService.updateArticle(articleId, partialUpdate, testUserId);
+        ArticleDetailDTO result = articleService.updateArticle(articleId, partialUpdate);
 
-        // Then - 验证只有标题被更新
         assertEquals("只更新标题", result.getTitle());
-        assertEquals("这是测试文章的内容", result.getContent());  // 内容未变
+        assertEquals("这是测试文章的内容", result.getContent());
     }
 
     @Test
     @Order(20)
     @DisplayName("测试空文章列表")
     void testEmptyArticleList() {
-        // Given - 清空所有文章
         articleRepository.deleteAll();
         entityManager.flush();
 
-        // When
         Pageable pageable = PageRequest.of(0, 10);
         var result = articleService.getArticleList(pageable);
 
-        // Then
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
     }

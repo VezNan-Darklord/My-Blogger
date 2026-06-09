@@ -8,6 +8,7 @@ import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
 import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class UserService {
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final SecurityContextUtil securityContextUtil;
 
     // ==================== 用户注册与登录 ====================
 
@@ -217,15 +219,19 @@ public class UserService {
      */
     @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {
+        Long currentUserId = securityContextUtil.getCurrentUserId();
+
+        if (!currentUserId.equals(userId) && !securityContextUtil.isAdmin()) {
+            throw new SecurityException("无权限修改此用户密码");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
 
-        // 验证旧密码
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("原密码错误");
         }
 
-        // 更新密码
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setPasswordUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -301,6 +307,10 @@ public class UserService {
      */
     @Transactional
     public void activateUser(Long userId) {
+        if (!securityContextUtil.isAdmin()) {
+            throw new SecurityException("只有管理员可以启用用户");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
         user.setStatus(User.UserStatus.ACTIVE);
@@ -312,6 +322,10 @@ public class UserService {
      */
     @Transactional
     public void deactivateUser(Long userId) {
+        if (!securityContextUtil.isAdmin()) {
+            throw new SecurityException("只有管理员可以禁用用户");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
         user.setStatus(User.UserStatus.INACTIVE);
@@ -323,6 +337,10 @@ public class UserService {
      */
     @Transactional
     public void lockUser(Long userId) {
+        if (!securityContextUtil.isAdmin()) {
+            throw new SecurityException("只有管理员可以锁定用户");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
         user.setStatus(User.UserStatus.LOCKED);
@@ -334,6 +352,10 @@ public class UserService {
      */
     @Transactional
     public void unlockUser(Long userId) {
+        if (!securityContextUtil.isAdmin()) {
+            throw new SecurityException("只有管理员可以解锁用户");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
         user.setStatus(User.UserStatus.ACTIVE);
@@ -345,16 +367,18 @@ public class UserService {
      */
     @Transactional
     public void deleteUser(Long userId, boolean softDelete) {
+        if (!securityContextUtil.isAdmin()) {
+            throw new SecurityException("只有管理员可以删除用户");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
 
         if (softDelete) {
-            // 软删除：禁用用户
             user.setStatus(User.UserStatus.INACTIVE);
             userRepository.save(user);
         } else {
-            // 硬删除：先删除关联数据
-            commentRepository.deleteByArticle(null); // 实际应根据业务逻辑处理
+            commentRepository.deleteByArticle(null);
             userRepository.delete(user);
         }
     }

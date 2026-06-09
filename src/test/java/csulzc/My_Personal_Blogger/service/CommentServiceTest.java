@@ -4,10 +4,13 @@ import csulzc.My_Personal_Blogger.api.dto.comment.CommentCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 
@@ -18,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(CommentService.class)
+@Import({CommentService.class, SecurityContextUtil.class})
 @DisplayName("CommentService 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CommentServiceTest {
@@ -34,6 +37,9 @@ public class CommentServiceTest {
 
     @Autowired
     private ArticleRepository articleRepository;
+
+    @Autowired
+    private SecurityContextUtil securityContextUtil;
 
     @Autowired
     private UserRepository userRepository;
@@ -107,11 +113,20 @@ public class CommentServiceTest {
 
         entityManager.flush();
         entityManager.clear();
+
+        setCurrentUser(testUserId1);
     }
 
     @AfterEach
     void tearDown() {
         entityManager.clear();
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setCurrentUser(Long userId) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, java.util.List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
@@ -124,7 +139,7 @@ public class CommentServiceTest {
                 .build();
 
         // When - 执行创建操作
-        CommentDTO result = commentService.createComment(testArticleId, testUserId1, request);
+        CommentDTO result = commentService.createComment(testArticleId, request);
 
         // Then - 验证结果
         assertNotNull(result);
@@ -139,13 +154,15 @@ public class CommentServiceTest {
     @DisplayName("测试创建回复评论 - 成功")
     void testCreateReplyComment_Success() {
         // Given - 准备回复请求
+        setCurrentUser(testUserId2);
+
         CommentCreateRequest request = CommentCreateRequest.builder()
                 .content("这是对评论的回复")
                 .parentCommentId(topLevelCommentId)
                 .build();
 
         // When - 执行创建操作
-        CommentDTO result = commentService.createComment(testArticleId, testUserId2, request);
+        CommentDTO result = commentService.createComment(testArticleId, request);
 
         // Then - 验证结果
         assertNotNull(result);
@@ -166,7 +183,7 @@ public class CommentServiceTest {
 
         // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            commentService.createComment(nonExistentArticleId, testUserId1, request);
+            commentService.createComment(nonExistentArticleId, request);
         });
     }
 
@@ -180,9 +197,11 @@ public class CommentServiceTest {
                 .content("测试评论")
                 .build();
 
+        setCurrentUser(nonExistentUserId);
+
         // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            commentService.createComment(testArticleId, nonExistentUserId, request);
+            commentService.createComment(testArticleId, request);
         });
     }
 
@@ -198,7 +217,7 @@ public class CommentServiceTest {
 
         // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            commentService.createComment(testArticleId, testUserId1, request);
+            commentService.createComment(testArticleId, request);
         });
     }
 
@@ -229,7 +248,7 @@ public class CommentServiceTest {
 
         // When & Then - 应该抛出异常
         assertThrows(IllegalArgumentException.class, () -> {
-            commentService.createComment(testArticleId, testUserId1, request);
+            commentService.createComment(testArticleId, request);
         });
     }
 
@@ -241,7 +260,7 @@ public class CommentServiceTest {
         Long commentId = topLevelCommentId;
 
         // When - 执行删除操作
-        commentService.deleteComment(commentId, testUserId1);
+        commentService.deleteComment(commentId);
 
         // Then - 验证评论已被删除
         Optional<Comment> deleted = commentRepository.findById(commentId);
@@ -257,7 +276,7 @@ public class CommentServiceTest {
 
         // When & Then - 应该抛出异常
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> {
-            commentService.deleteComment(nonExistentId, testUserId1);
+            commentService.deleteComment(nonExistentId);
         });
     }
 
@@ -267,10 +286,13 @@ public class CommentServiceTest {
     void testDeleteComment_NoPermission() {
         // Given
         Long commentId = topLevelCommentId;
+        Long anotherUserId = 999L;
+
+        setCurrentUser(anotherUserId);
 
         // When & Then - 应该抛出权限异常
-        assertThrows(RuntimeException.class, () -> {
-            commentService.deleteComment(commentId, testUserId2);
+        assertThrows(SecurityException.class, () -> {
+            commentService.deleteComment(commentId);
         });
     }
 

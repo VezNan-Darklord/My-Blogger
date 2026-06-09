@@ -6,6 +6,7 @@ import csulzc.My_Personal_Blogger.api.dto.category.CategoryDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,17 +28,16 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final SecurityContextUtil securityContextUtil;
 
     /**
      * 创建文章
      */
     @Transactional
-    public ArticleDetailDTO createArticle(@Valid ArticleCreateRequest request, Long authorId) {
-        // 获取作者信息（假设从用户服务获取）
-        User author = new User();
-        author.setId(authorId);
-        
-        // 创建文章实体
+    public ArticleDetailDTO createArticle(@Valid ArticleCreateRequest request) {
+        User author = securityContextUtil.getCurrentUserAndValidateStatus();
+
         Article article = Article.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
@@ -48,21 +48,19 @@ public class ArticleService {
                 .likeCount(0)
                 .favoriteCount(0)
                 .build();
-        
-        // 设置分类
+
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
             Set<Category> categories = new HashSet<>(categoryRepository.findAllById(request.getCategoryIds()));
-            
+
             if (categories.size() != request.getCategoryIds().size()) {
                 throw new EntityNotFoundException("部分分类不存在");
             }
-            
+
             categories.forEach(article::addCategory);
         }
-        
-        // 保存文章
+
         Article savedArticle = articleRepository.save(article);
-        
+
         return convertToDetailDTO(savedArticle);
     }
 
@@ -70,55 +68,47 @@ public class ArticleService {
      * 更新文章
      */
     @Transactional
-    public ArticleDetailDTO updateArticle(Long articleId, @Valid ArticleUpdateRequest request, Long userId) {
-        // 获取文章
+    public ArticleDetailDTO updateArticle(Long articleId, @Valid ArticleUpdateRequest request) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
-        
-        // 检查权限（只有作者可以修改）
-        if (!article.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("无权限修改此文章");
-        }
-        
-        // 更新字段
+
+        Long currentUserId = securityContextUtil.getCurrentUserId();
+        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+
         if (request.getTitle() != null) {
             article.setTitle(request.getTitle());
         }
-        
+
         if (request.getContent() != null) {
             article.setContent(request.getContent());
             article.setSummary(generateSummary(request.getContent()));
         }
-        
+
         if (request.getSummary() != null) {
             article.setSummary(request.getSummary());
         }
-        
+
         if (request.getCoverImage() != null) {
             article.setCoverImage(request.getCoverImage());
         }
-        
+
         if (request.getStatus() != null) {
             article.setStatus(request.getStatus());
         }
-        
-        // 更新分类
+
         if (request.getCategoryIds() != null) {
-            // 清空现有分类
             Set<Category> existingCategories = new HashSet<>(article.getCategories());
             existingCategories.forEach(article::removeCategory);
-            
-            // 添加新分类
+
             Set<Category> newCategories = new HashSet<>(categoryRepository.findAllById(request.getCategoryIds()));
-            
+
             if (newCategories.size() != request.getCategoryIds().size()) {
                 throw new EntityNotFoundException("部分分类不存在");
             }
-            
+
             newCategories.forEach(article::addCategory);
         }
-        
-        // 保存并返回
+
         Article updatedArticle = articleRepository.save(article);
         return convertToDetailDTO(updatedArticle);
     }
@@ -127,18 +117,15 @@ public class ArticleService {
      * 发布文章（将状态改为 RELEASE）
      */
     @Transactional
-    public ArticleDetailDTO publishArticle(Long articleId, Long userId) {
+    public ArticleDetailDTO publishArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
-        
-        // 检查权限
-        if (!article.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("无权限发布此文章");
-        }
-        
+
+        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+
         article.setStatus(Article.ArticleStatus.RELEASE);
         Article publishedArticle = articleRepository.save(article);
-        
+
         return convertToDetailDTO(publishedArticle);
     }
 
@@ -146,17 +133,15 @@ public class ArticleService {
      * 归档文章
      */
     @Transactional
-    public ArticleDetailDTO archiveArticle(Long articleId, Long userId) {
+    public ArticleDetailDTO archiveArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
-        
-        if (!article.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("无权限归档此文章");
-        }
-        
+
+        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+
         article.setStatus(Article.ArticleStatus.ARCHIVE);
         Article archivedArticle = articleRepository.save(article);
-        
+
         return convertToDetailDTO(archivedArticle);
     }
 
@@ -231,14 +216,12 @@ public class ArticleService {
      * 删除文章
      */
     @Transactional
-    public void deleteArticle(Long articleId, Long userId) {
+    public void deleteArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
-        
-        if (!article.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("无权限删除此文章");
-        }
-        
+
+        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+
         articleRepository.delete(article);
     }
 

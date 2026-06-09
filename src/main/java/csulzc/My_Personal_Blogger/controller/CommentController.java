@@ -6,40 +6,37 @@ import csulzc.My_Personal_Blogger.api.dto.comment.CommentReplyDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.service.CommentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
+@Tag(name = "评论管理", description = "评论CRUD及回复操作")
 public class CommentController {
 
     private final CommentService commentService;
 
-    /**
-     * 创建评论（包括回复）
-     */
     @PostMapping("/article/{articleId}")
+    @Operation(summary = "创建评论", description = "需要登录，自动使用当前用户作为评论者")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<CommentDTO>> createComment(
             @PathVariable Long articleId,
-            @Valid @RequestBody CommentCreateRequest request,
-            @RequestParam Long commenterId) {
+            @Valid @RequestBody CommentCreateRequest request) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
         }
-        if (commenterId == null || commenterId <= 0) {
-            throw new IllegalArgumentException("评论者ID无效");
-        }
-        CommentDTO comment = commentService.createComment(articleId, commenterId, request);
+        CommentDTO comment = commentService.createComment(articleId, request);
         return ResponseEntity.ok(Result.success(comment, "评论发表成功"));
     }
 
-    /**
-     * 获取评论详情
-     */
     @GetMapping("/{commentId}")
+    @Operation(summary = "获取评论详情", description = "公开访问")
     public ResponseEntity<Result<CommentDTO>> getCommentById(@PathVariable Long commentId) {
         if (commentId == null || commentId <= 0) {
             throw new IllegalArgumentException("评论ID无效");
@@ -48,10 +45,8 @@ public class CommentController {
         return ResponseEntity.ok(Result.success(comment));
     }
 
-    /**
-     * 获取文章的顶级评论列表（分页）
-     */
     @GetMapping("/article/{articleId}")
+    @Operation(summary = "获取文章评论列表", description = "公开访问")
     public ResponseEntity<Result<PageResponseDTO<CommentDTO>>> getTopLevelComments(
             @PathVariable Long articleId,
             @RequestParam(defaultValue = "0") int page,
@@ -70,10 +65,8 @@ public class CommentController {
         return ResponseEntity.ok(Result.success(comments));
     }
 
-    /**
-     * 获取某个评论的所有回复（分页）
-     */
     @GetMapping("/{commentId}/replies")
+    @Operation(summary = "获取评论回复列表", description = "公开访问")
     public ResponseEntity<Result<PageResponseDTO<CommentReplyDTO>>> getCommentReplies(
             @PathVariable Long commentId,
             @RequestParam(defaultValue = "0") int page,
@@ -92,10 +85,8 @@ public class CommentController {
         return ResponseEntity.ok(Result.success(replies));
     }
 
-    /**
-     * 获取用户的所有评论（分页）
-     */
     @GetMapping("/user/{userId}")
+    @Operation(summary = "获取用户评论列表", description = "公开访问")
     public ResponseEntity<Result<PageResponseDTO<CommentDTO>>> getUserComments(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
@@ -114,27 +105,20 @@ public class CommentController {
         return ResponseEntity.ok(Result.success(comments));
     }
 
-    /**
-     * 删除评论
-     */
     @DeleteMapping("/{commentId}")
+    @Operation(summary = "删除评论", description = "需要登录且为评论作者或管理员")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Result<Void>> deleteComment(
-            @PathVariable Long commentId,
-            @RequestParam Long userId) {
+            @PathVariable Long commentId) {
         if (commentId == null || commentId <= 0) {
             throw new IllegalArgumentException("评论ID无效");
         }
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("用户ID无效");
-        }
-        commentService.deleteComment(commentId, userId);
+        commentService.deleteComment(commentId);
         return ResponseEntity.ok(Result.success(null, "评论删除成功"));
     }
 
-    /**
-     * 统计文章的评论数
-     */
     @GetMapping("/article/{articleId}/count")
+    @Operation(summary = "统计文章评论数", description = "公开访问")
     public ResponseEntity<Result<Long>> countCommentsByArticle(@PathVariable Long articleId) {
         if (articleId == null || articleId <= 0) {
             throw new IllegalArgumentException("文章ID无效");
@@ -143,10 +127,8 @@ public class CommentController {
         return ResponseEntity.ok(Result.success(count));
     }
 
-    /**
-     * 统计用户的评论数
-     */
     @GetMapping("/user/{userId}/count")
+    @Operation(summary = "统计用户评论数", description = "公开访问")
     public ResponseEntity<Result<Long>> countCommentsByUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");

@@ -6,10 +6,15 @@ import csulzc.My_Personal_Blogger.api.dto.article.ArticleDetailDTO;
 import csulzc.My_Personal_Blogger.api.dto.article.ArticleUpdateRequest;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
+import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.repository.UserRepository;
+import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.service.ArticleService;
 import csulzc.My_Personal_Blogger.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -37,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ArticleController.class)
 @DisplayName("ArticleController 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import(ArticleControllerTest.TestSecurityConfig.class)
+@Import({ArticleControllerTest.TestSecurityConfig.class, JwtTokenProvider.class})
+@EnableConfigurationProperties(JwtProperties.class)
 class ArticleControllerTest {
 
 // ... existing code ...
@@ -67,6 +73,12 @@ class ArticleControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
+    private SecurityContextUtil securityContextUtil;
 
     private ArticleCreateRequest createRequest;
     private ArticleUpdateRequest updateRequest;
@@ -111,7 +123,7 @@ class ArticleControllerTest {
     @DisplayName("测试创建文章 - 成功")
     void testCreateArticle_Success() throws Exception {
         // Given - 准备Mock行为
-        given(articleService.createArticle(any(ArticleCreateRequest.class), eq(1L)))
+        given(articleService.createArticle(any(ArticleCreateRequest.class)))
                 .willReturn(articleDetailDTO);
 
         // When & Then - 执行请求并验证结果
@@ -126,7 +138,7 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.data.content").value("Exhaust your hand. Deal 10 Damage for each card Exhausted. Exhaust."));
 
         // 验证Service方法被调用
-        then(articleService).should().createArticle(any(ArticleCreateRequest.class), eq(1L));
+        then(articleService).should().createArticle(any(ArticleCreateRequest.class));
     }
 
     @Test
@@ -150,15 +162,25 @@ class ArticleControllerTest {
 
     @Test
     @Order(3)
-    @DisplayName("测试创建文章 - 作者ID无效")
-    void testCreateArticle_InvalidAuthorId() throws Exception {
-        // When & Then - authorId为负数，应该抛出异常
+    @DisplayName("测试创建文章 - 内容过短")
+    void testCreateArticle_ContentTooShort() throws Exception {
+        // Given - 准备内容过短的数据
+        ArticleCreateRequest shortContentRequest = ArticleCreateRequest.builder()
+                .title("测试文章")
+                .content("太短")  // 内容长度不足
+                .categoryIds(java.util.Set.of(1L))
+                .build();
+
+        // When & Then - 应该返回400错误（如果Service有验证）
+        given(articleService.createArticle(any(ArticleCreateRequest.class)))
+                .willThrow(new IllegalArgumentException("文章内容长度不能少于20个字符"));
+
         mockMvc.perform(post("/api/articles")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .param("authorId", "-1")
-                        .content(objectMapper.writeValueAsString(createRequest)))
+                        .content(objectMapper.writeValueAsString(shortContentRequest)))
                 .andExpect(status().isBadRequest());
     }
+
 
     @Test
     @Order(4)
@@ -183,7 +205,7 @@ class ArticleControllerTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        given(articleService.updateArticle(eq(articleId), any(ArticleUpdateRequest.class), eq(userId)))
+        given(articleService.updateArticle(eq(articleId), any(ArticleUpdateRequest.class)))
                 .willReturn(updatedArticle);
 
         // When & Then
@@ -196,7 +218,7 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.message").value("文章更新成功"))
                 .andExpect(jsonPath("$.data.title").value("更新后的标题"));
 
-        then(articleService).should().updateArticle(eq(articleId), any(ArticleUpdateRequest.class), eq(userId));
+        then(articleService).should().updateArticle(eq(articleId), any(ArticleUpdateRequest.class));
     }
 
     @Test
@@ -205,7 +227,7 @@ class ArticleControllerTest {
     void testUpdateArticle_NotFound() throws Exception {
         // Given
         Long nonExistentId = 999L;
-        given(articleService.updateArticle(eq(nonExistentId), any(ArticleUpdateRequest.class), eq(1L)))
+        given(articleService.updateArticle(eq(nonExistentId), any(ArticleUpdateRequest.class)))
                 .willThrow(new jakarta.persistence.EntityNotFoundException("文章不存在"));
 
         // When & Then
@@ -237,7 +259,7 @@ class ArticleControllerTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        given(articleService.publishArticle(eq(articleId), eq(userId)))
+        given(articleService.publishArticle(eq(articleId)))
                 .willReturn(publishedArticle);
 
         // When & Then
@@ -248,7 +270,7 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.message").value("文章发布成功"))
                 .andExpect(jsonPath("$.data.status").value("RELEASE"));
 
-        then(articleService).should().publishArticle(eq(articleId), eq(userId));
+        then(articleService).should().publishArticle(eq(articleId));
     }
 
     @Test
@@ -272,7 +294,7 @@ class ArticleControllerTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        given(articleService.archiveArticle(eq(articleId), eq(userId)))
+        given(articleService.archiveArticle(eq(articleId)))
                 .willReturn(archivedArticle);
 
         // When & Then
@@ -397,7 +419,7 @@ class ArticleControllerTest {
         // Given
         Long articleId = 1L;
         Long userId = 1L;
-        doNothing().when(articleService).deleteArticle(eq(articleId), eq(userId));
+        doNothing().when(articleService).deleteArticle(eq(articleId));
 
         // When & Then
         mockMvc.perform(delete("/api/articles/{articleId}", articleId)
@@ -406,7 +428,7 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("文章删除成功"));
 
-        then(articleService).should().deleteArticle(eq(articleId), eq(userId));
+        then(articleService).should().deleteArticle(eq(articleId));
     }
 
     @Test
@@ -417,7 +439,7 @@ class ArticleControllerTest {
         Long articleId = 1L;
         Long userId = 999L;
         doThrow(new RuntimeException("无权限删除此文章"))
-                .when(articleService).deleteArticle(eq(articleId), eq(userId));
+                .when(articleService).deleteArticle(eq(articleId));
 
         // When & Then
         mockMvc.perform(delete("/api/articles/{articleId}", articleId)

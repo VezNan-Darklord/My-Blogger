@@ -9,6 +9,7 @@ import csulzc.My_Personal_Blogger.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -185,6 +186,7 @@ public class UserController {
      * 启用用户（管理员功能）
      */
     @PostMapping("/{userId}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> activateUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -197,6 +199,7 @@ public class UserController {
      * 禁用用户（管理员功能）
      */
     @PostMapping("/{userId}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> deactivateUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -209,6 +212,7 @@ public class UserController {
      * 锁定用户（管理员功能）
      */
     @PostMapping("/{userId}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> lockUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -221,6 +225,7 @@ public class UserController {
      * 解锁用户（管理员功能）
      */
     @PostMapping("/{userId}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> unlockUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -233,6 +238,7 @@ public class UserController {
      * 删除用户（管理员功能）
      */
     @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> deleteUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "true") boolean softDelete) {
