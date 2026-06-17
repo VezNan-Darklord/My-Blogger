@@ -120,10 +120,10 @@ public class FileStorageService {
         }
 
         String[] allowedTypes = fileStorageProperties.getAllowedFileTypes();
-        if (!Arrays.asList(allowedTypes).contains(contentType)) {
-            throw new RuntimeException("不支持的文件类型: " + contentType +
-                    "，仅支持: " + String.join(", ", allowedTypes));
+        if (allowedTypes == null || !Arrays.asList(allowedTypes).contains(contentType)) {
+            throw new RuntimeException("不支持的文件类型: " + contentType);
         }
+
     }
 
     /**

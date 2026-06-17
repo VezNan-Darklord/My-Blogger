@@ -235,6 +235,9 @@ public class CategoryService {
 
         return results.stream()
                 .map(obj -> {
+                    if (obj[0] == null) {
+                        throw new IllegalStateException("分类统计结果异常");
+                    }
                     Category category = (Category) obj[0];
                     Long articleCount = (Long) obj[1];
                     return CategoryStatDTO.builder()
@@ -261,9 +264,12 @@ public class CategoryService {
     private long countArticlesRecursive(Category category) {
         long count = category.getArticles().size();
 
-        for (Category subCategory : category.getSubCategories()) {
-            count += countArticlesRecursive(subCategory);
+        if (category.getSubCategories() != null) {
+            for (Category subCategory : category.getSubCategories()) {
+                count += countArticlesRecursive(subCategory);
+            }
         }
+
 
         return count;
     }
@@ -272,7 +278,7 @@ public class CategoryService {
      * 计算分类的文章数量（不包含子分类）
      */
     private int countArticlesInCategory(Category category) {
-        return category.getArticles().size();
+        return category.getArticles() != null ? category.getArticles().size() : 0;
     }
 
     /**
@@ -323,7 +329,9 @@ public class CategoryService {
         // 如果有父分类，需要从父分类的子分类列表中移除
         Category parentCategory = category.getParentCategory();
         if (parentCategory != null) {
-            parentCategory.getSubCategories().remove(category);
+            if (parentCategory.getSubCategories() != null) {
+                parentCategory.getSubCategories().remove(category);
+            }
             categoryRepository.save(parentCategory);
         }
 

@@ -15,10 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,7 +47,9 @@ public class ArticleService {
                 .build();
 
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
-            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(request.getCategoryIds()));
+            Set<Category> categories = categoryRepository.findAllById(request.getCategoryIds()).stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
             if (categories.size() != request.getCategoryIds().size()) {
                 throw new EntityNotFoundException("部分分类不存在");
@@ -73,7 +72,11 @@ public class ArticleService {
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
         Long currentUserId = securityContextUtil.getCurrentUserId();
-        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+        User author = article.getAuthor();
+        if (author == null) {
+            throw new IllegalStateException("文章作者信息缺失");
+        }
+        securityContextUtil.validateOwnershipOrAdmin(author.getId(), "文章");
 
         if (request.getTitle() != null) {
             article.setTitle(request.getTitle());
@@ -121,7 +124,11 @@ public class ArticleService {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
-        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+        User author = article.getAuthor();
+        if (author == null) {
+            throw new IllegalStateException("文章作者信息缺失");
+        }
+        securityContextUtil.validateOwnershipOrAdmin(author.getId(), "文章");
 
         article.setStatus(Article.ArticleStatus.RELEASE);
         Article publishedArticle = articleRepository.save(article);
@@ -137,7 +144,11 @@ public class ArticleService {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
-        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+        User author = article.getAuthor();
+        if (author == null) {
+            throw new IllegalStateException("文章作者信息缺失");
+        }
+        securityContextUtil.validateOwnershipOrAdmin(author.getId(), "文章");
 
         article.setStatus(Article.ArticleStatus.ARCHIVE);
         Article archivedArticle = articleRepository.save(article);
@@ -220,7 +231,11 @@ public class ArticleService {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
 
-        securityContextUtil.validateOwnershipOrAdmin(article.getAuthor().getId(), "文章");
+        User author = article.getAuthor();
+        if (author == null) {
+            throw new IllegalStateException("文章作者信息缺失");
+        }
+        securityContextUtil.validateOwnershipOrAdmin(author.getId(), "文章");
 
         articleRepository.delete(article);
     }

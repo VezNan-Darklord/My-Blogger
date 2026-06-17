@@ -85,7 +85,12 @@ public class JwtTokenProvider {
      */
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
-        return claims.get("userId", Long.class);
+        Long userId = claims.get("userId", Long.class);
+        if (userId == null) {
+            throw new JwtException("Token中缺少用户ID");
+        }
+        return userId;
+
     }
 
     /**

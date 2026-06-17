@@ -25,6 +25,9 @@ public class SecurityContextUtil {
         }
 
         Object principal = authentication.getPrincipal();
+        if (principal == null) {
+            throw new IllegalStateException("无法获取用户身份信息");
+        }
 
         if (principal instanceof Long) {
             return (Long) principal;
