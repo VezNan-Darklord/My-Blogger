@@ -1,8 +1,11 @@
 package csulzc.My_Personal_Blogger.api.response;
 
+import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -77,6 +80,13 @@ public class GlobalExceptionHandler {
                 .body(Result.error(403, e.getMessage() != null ? e.getMessage() : "没有权限访问"));
     }
 
+    @ExceptionHandler({OptimisticLockException.class, OptimisticLockingFailureException.class})
+    public ResponseEntity<Result<Void>> handleOptimisticLockException(Exception e) {
+        log.warn("乐观锁冲突: 数据已被其他用户修改，请刷新后重试 - {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Result.error(409, "数据已被其他用户修改，请刷新后重试"));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Result<Void>> handleRuntimeException(RuntimeException e) {
         log.error("运行时异常: ", e);
@@ -89,5 +99,12 @@ public class GlobalExceptionHandler {
         log.error("系统异常: ", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Result.error(500, "系统异常，请联系管理员"));
+    }
+
+    @ExceptionHandler(TransactionTimedOutException.class)
+    public ResponseEntity<Result<Void>> handleTransactionTimedOutException(TransactionTimedOutException e) {
+        log.error("事务超时: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Result.error(503, "操作超时，请稍后重试"));
     }
 }

@@ -110,7 +110,7 @@ public class AdminService {
                 || user.getRole() == User.UserRole.SUPER_ADMIN;
     }
 
-    @Transactional
+    @Transactional(timeout = 30)
     public void promoteToAdmin(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
@@ -123,7 +123,7 @@ public class AdminService {
         userRepository.save(user);
     }
 
-    @Transactional
+    @Transactional(timeout = 30)
     public void demoteFromAdmin(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));

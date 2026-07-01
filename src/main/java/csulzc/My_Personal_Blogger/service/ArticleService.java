@@ -31,7 +31,7 @@ public class ArticleService {
     /**
      * 创建文章
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public ArticleDetailDTO createArticle(@Valid ArticleCreateRequest request) {
         User author = securityContextUtil.getCurrentUserAndValidateStatus();
 
@@ -66,7 +66,7 @@ public class ArticleService {
     /**
      * 更新文章
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public ArticleDetailDTO updateArticle(Long articleId, @Valid ArticleUpdateRequest request) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -119,7 +119,7 @@ public class ArticleService {
     /**
      * 发布文章（将状态改为 RELEASE）
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public ArticleDetailDTO publishArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -139,7 +139,7 @@ public class ArticleService {
     /**
      * 归档文章
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public ArticleDetailDTO archiveArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -226,7 +226,7 @@ public class ArticleService {
     /**
      * 删除文章
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public void deleteArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -240,6 +240,40 @@ public class ArticleService {
         articleRepository.delete(article);
     }
 
+    @Transactional(timeout = 120)
+    public int batchDeleteArticles(List<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) {
+            return 0;
+        }
+        return articleRepository.batchDeleteByIds(articleIds);
+    }
+
+    @Transactional(timeout = 60)
+    public int batchPublishArticles(List<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) {
+            return 0;
+        }
+        return articleRepository.batchUpdateStatus(articleIds, Article.ArticleStatus.RELEASE);
+    }
+
+    @Transactional(timeout = 60)
+    public int batchArchiveArticles(List<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) {
+            return 0;
+        }
+        return articleRepository.batchUpdateStatus(articleIds, Article.ArticleStatus.ARCHIVE);
+    }
+
+    @Transactional(timeout = 10)
+    public void likeArticle(Long articleId) {
+        articleRepository.incrementLikeCount(articleId);
+    }
+
+    @Transactional(timeout = 10)
+    public void viewArticle(Long articleId) {
+        articleRepository.incrementViewCount(articleId);
+    }
+
     /**
      * 生成摘要（从内容中提取前 200 个字符）
      */
@@ -247,12 +281,12 @@ public class ArticleService {
         if (content == null || content.isEmpty()) {
             return "";
         }
-        
+
         int maxLength = 200;
         if (content.length() <= maxLength) {
             return content;
         }
-        
+
         return content.substring(0, maxLength) + "...";
     }
 
@@ -323,7 +357,7 @@ public class ArticleService {
         if (categories == null) {
             return new ArrayList<>();
         }
-        
+
         return categories.stream()
                 .map(category -> CategoryDTO.builder()
                         .name(category.getName())

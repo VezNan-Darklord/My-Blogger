@@ -21,6 +21,10 @@ public abstract class BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Builder.Default
+    private Long version = 0L;
+
     @Column(updatable = false)  // 创建后不可更新
     protected LocalDateTime createdAt;
 

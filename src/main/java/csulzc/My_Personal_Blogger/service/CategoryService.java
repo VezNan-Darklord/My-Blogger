@@ -31,7 +31,7 @@ public class CategoryService {
     /**
      * 创建分类
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public CategoryDTO createCategory(CategoryRequest request) {
         // 检查分类名称是否已存在
         if (categoryRepository.findByName(request.getName()).isPresent()) {
@@ -59,7 +59,7 @@ public class CategoryService {
     /**
      * 更新分类信息
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public CategoryDTO updateCategory(Long categoryId, CategoryRequest request) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -308,7 +308,7 @@ public class CategoryService {
     /**
      * 删除分类（如果分类下有文章或子分类，则不允许删除）
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public void deleteCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -341,7 +341,7 @@ public class CategoryService {
     /**
      * 删除分类并转移文章到指定分类
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public void deleteCategoryAndTransferArticles(Long categoryId, Long targetCategoryId) {
         Category sourceCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("源分类不存在"));

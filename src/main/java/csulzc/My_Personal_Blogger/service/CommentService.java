@@ -40,7 +40,7 @@ public class CommentService {
     /**
      * 创建评论（包括回复）
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public CommentDTO createComment(Long articleId, CommentCreateRequest request) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -72,7 +72,7 @@ public class CommentService {
     /**
      * 删除评论
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("评论不存在"));
@@ -90,7 +90,7 @@ public class CommentService {
     /**
      * 批量删除文章的所有评论
      */
-    @Transactional
+    @Transactional(timeout = 60)
     public int deleteCommentsByArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -122,6 +122,27 @@ public class CommentService {
         return allComments.size();
     }
 
+    /**
+     * 批量删除指定 ID 的评论
+     */
+    @Transactional(timeout = 60)
+    public int batchDeleteComments(List<Long> commentIds) {
+        if (commentIds == null || commentIds.isEmpty()) {
+            return 0;
+        }
+        return commentRepository.batchDeleteByIds(commentIds);
+    }
+
+    /**
+     * 批量审核评论
+     */
+    @Transactional(timeout = 60)
+    public int batchApproveComments(List<Long> commentIds, boolean approved) {
+        if (commentIds == null || commentIds.isEmpty()) {
+            return 0;
+        }
+        return commentRepository.batchUpdateApprovalStatus(commentIds, approved);
+    }
 
     // ==================== 评论查询 ====================
 

@@ -34,9 +34,19 @@ public interface CommentRepository extends BaseRepository<Comment, Long> {
 
 
     // 5. 批量删除文章的评论
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM Comment c WHERE c.article = :article")
     int deleteByArticle(@Param("article") Article article);
+
+    // 批量删除指定ID列表的评论
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Comment c WHERE c.id IN :ids")
+    int batchDeleteByIds(@Param("ids") List<Long> ids);
+
+    // 批量更新评论审核状态
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Comment c SET c.isApproved = :approved WHERE c.id IN :ids")
+    int batchUpdateApprovalStatus(@Param("ids") List<Long> ids, @Param("approved") boolean approved);
 
     long countByCommenter(User user);
 

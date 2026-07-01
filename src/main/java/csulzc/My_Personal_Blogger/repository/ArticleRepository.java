@@ -32,7 +32,7 @@ public interface ArticleRepository extends BaseRepository<Article, Long> {
     long countByAuthor(User author);
 
     // 6. 更新文章状态
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Article a SET a.status = :status WHERE a.id = :id")
     int updateStatus(@Param("id") Long id, @Param("status") Article.ArticleStatus status);
 
@@ -47,4 +47,23 @@ public interface ArticleRepository extends BaseRepository<Article, Long> {
 
     @Query("SELECT SUM(a.viewCount) FROM Article a")
     Long sumViewCount();
+
+    // 批量更新文章状态（根据ID集合）
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Article a SET a.status = :status WHERE a.id IN :ids")
+    int batchUpdateStatus(@Param("ids") List<Long> ids, @Param("status") Article.ArticleStatus status);
+
+    // 批量增加点赞数
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Article a SET a.likeCount = a.likeCount + 1 WHERE a.id = :id")
+    int incrementLikeCount(@Param("id") Long id);
+
+    // 批量增加浏览数
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Article a SET a.viewCount = a.viewCount + 1 WHERE a.id = :id")
+    int incrementViewCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Article a WHERE a.id IN :articleIds")
+    int batchDeleteByIds(List<Long> articleIds);
 }
