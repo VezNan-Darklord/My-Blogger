@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -549,4 +550,134 @@ public class CommentServiceTest {
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
     }
+
+    @Test
+    @Order(21)
+    @DisplayName("测试批量删除评论 - 按ID列表删除")
+    void testBatchDeleteComments_Success() {
+        // Given - 创建多条评论
+        Comment comment1 = Comment.builder()
+                .content("待删除评论1")
+                .article(testArticle)
+                .commenter(testUser1)
+                .build();
+        entityManager.persist(comment1);
+
+        Comment comment2 = Comment.builder()
+                .content("待删除评论2")
+                .article(testArticle)
+                .commenter(testUser2)
+                .build();
+        entityManager.persist(comment2);
+        entityManager.flush();
+
+        List<Long> deleteIds = java.util.List.of(comment1.getId(), comment2.getId());
+
+        // When - 批量删除
+        int deletedCount = commentService.batchDeleteComments(deleteIds);
+
+        // Then - 验证结果
+        assertThat(deletedCount).isEqualTo(2);
+
+        entityManager.clear();
+        assertThat(entityManager.find(Comment.class, comment1.getId())).isNull();
+        assertThat(entityManager.find(Comment.class, comment2.getId())).isNull();
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("测试批量删除评论 - 空列表")
+    void testBatchDeleteComments_EmptyList() {
+        // When - 传入空列表
+        int deletedCount = commentService.batchDeleteComments(java.util.List.of());
+
+        // Then - 返回 0
+        assertThat(deletedCount).isEqualTo(0);
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("测试批量审核评论 - 通过")
+    void testBatchApproveComments_Success() {
+        // Given - 创建多条待审核评论
+        Comment pending1 = Comment.builder()
+                .content("待审核评论1")
+                .article(testArticle)
+                .commenter(testUser1)
+                .isApproved(false)
+                .build();
+        entityManager.persist(pending1);
+
+        Comment pending2 = Comment.builder()
+                .content("待审核评论2")
+                .article(testArticle)
+                .commenter(testUser2)
+                .isApproved(false)
+                .build();
+        entityManager.persist(pending2);
+        entityManager.flush();
+
+        List<Long> approveIds = java.util.List.of(pending1.getId(), pending2.getId());
+
+        // When - 批量审核通过
+        int updatedCount = commentService.batchApproveComments(approveIds, true);
+
+        // Then - 验证结果
+        assertThat(updatedCount).isEqualTo(2);
+
+        entityManager.clear();
+        Comment approved1 = entityManager.find(Comment.class, pending1.getId());
+        Comment approved2 = entityManager.find(Comment.class, pending2.getId());
+        assertThat(approved1.getIsApproved()).isTrue();
+        assertThat(approved2.getIsApproved()).isTrue();
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("测试批量审核评论 - 不通过")
+    void testBatchApproveComments_Disapprove() {
+        // Given - 创建多条已审核评论
+        Comment approved1 = Comment.builder()
+                .content("已审核评论1")
+                .article(testArticle)
+                .commenter(testUser1)
+                .isApproved(true)
+                .build();
+        entityManager.persist(approved1);
+
+        Comment approved2 = Comment.builder()
+                .content("已审核评论2")
+                .article(testArticle)
+                .commenter(testUser2)
+                .isApproved(true)
+                .build();
+        entityManager.persist(approved2);
+        entityManager.flush();
+
+        List<Long> disapproveIds = java.util.List.of(approved1.getId(), approved2.getId());
+
+        // When - 批量审核不通过
+        int updatedCount = commentService.batchApproveComments(disapproveIds, false);
+
+        // Then - 验证结果
+        assertThat(updatedCount).isEqualTo(2);
+
+        entityManager.clear();
+        Comment disapproved1 = entityManager.find(Comment.class, approved1.getId());
+        Comment disapproved2 = entityManager.find(Comment.class, approved2.getId());
+        assertThat(disapproved1.getIsApproved()).isFalse();
+        assertThat(disapproved2.getIsApproved()).isFalse();
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("测试批量审核评论 - 空列表")
+    void testBatchApproveComments_EmptyList() {
+        // When - 传入空列表
+        int updatedCount = commentService.batchApproveComments(java.util.List.of(), true);
+
+        // Then - 返回 0
+        assertThat(updatedCount).isEqualTo(0);
+    }
+
 }

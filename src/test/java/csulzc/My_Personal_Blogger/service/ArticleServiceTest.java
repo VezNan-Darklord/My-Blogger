@@ -499,4 +499,170 @@ public class ArticleServiceTest {
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
     }
+
+    @Test
+    @Order(21)
+    @DisplayName("测试批量发布文章 - 成功")
+    void testBatchPublishArticles_Success() {
+        // Given - 创建多篇草稿文章
+        List<Long> draftIds = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Article article = Article.builder()
+                    .title("草稿文章" + i)
+                    .content("这是草稿文章的内容，长度足够二十个字符以上")
+                    .author(testUser)
+                    .status(Article.ArticleStatus.DRAFT)
+                    .build();
+            entityManager.persist(article);
+            draftIds.add(article.getId());
+        }
+        entityManager.flush();
+
+        // When - 批量发布
+        int updatedCount = articleService.batchPublishArticles(draftIds);
+
+        // Then - 验证结果
+        assertThat(updatedCount).isEqualTo(3);
+
+        entityManager.clear();
+        for (Long id : draftIds) {
+            Article published = entityManager.find(Article.class, id);
+            assertThat(published.getStatus()).isEqualTo(Article.ArticleStatus.RELEASE);
+        }
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("测试批量归档文章 - 成功")
+    void testBatchArchiveArticles_Success() {
+        // Given - 创建多篇已发布文章
+        List<Long> publishedIds = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Article article = Article.builder()
+                    .title("已发布文章" + i)
+                    .content("这是已发布文章的内容，长度足够二十个字符以上")
+                    .author(testUser)
+                    .status(Article.ArticleStatus.RELEASE)
+                    .build();
+            entityManager.persist(article);
+            publishedIds.add(article.getId());
+        }
+        entityManager.flush();
+
+        // When - 批量归档
+        int updatedCount = articleService.batchArchiveArticles(publishedIds);
+
+        // Then - 验证结果
+        assertThat(updatedCount).isEqualTo(3);
+
+        entityManager.clear();
+        for (Long id : publishedIds) {
+            Article archived = entityManager.find(Article.class, id);
+            assertThat(archived.getStatus()).isEqualTo(Article.ArticleStatus.ARCHIVE);
+        }
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("测试批量删除文章 - 成功")
+    void testBatchDeleteArticles_Success() {
+        // Given - 创建多篇文章
+        List<Long> deleteIds = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Article article = Article.builder()
+                    .title("待删除文章" + i)
+                    .content("这是待删除文章的内容，长度足够")
+                    .author(testUser)
+                    .status(Article.ArticleStatus.DRAFT)
+                    .build();
+            entityManager.persist(article);
+            deleteIds.add(article.getId());
+        }
+        entityManager.flush();
+
+        // When - 批量删除
+        int deletedCount = articleService.batchDeleteArticles(deleteIds);
+
+        // Then - 验证结果
+        assertThat(deletedCount).isEqualTo(3);
+
+        entityManager.clear();
+        for (Long id : deleteIds) {
+            Article deleted = entityManager.find(Article.class, id);
+            assertThat(deleted).isNull();
+        }
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("测试批量发布文章 - 空列表")
+    void testBatchPublishArticles_EmptyList() {
+        // When - 传入空列表
+        int updatedCount = articleService.batchPublishArticles(java.util.List.of());
+
+        // Then - 返回 0
+        assertThat(updatedCount).isEqualTo(0);
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("测试批量删除文章 - 空列表")
+    void testBatchDeleteArticles_EmptyList() {
+        // When - 传入空列表
+        int deletedCount = articleService.batchDeleteArticles(java.util.List.of());
+
+        // Then - 返回 0
+        assertThat(deletedCount).isEqualTo(0);
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("测试文章点赞 - 增加点赞数")
+    void testLikeArticle() {
+        // Given - 创建一篇文章
+        Article article = Article.builder()
+                .title("点赞测试文章")
+                .content("这是用于测试点赞的文章内容，长度足够")
+                .author(testUser)
+                .likeCount(5)
+                .status(Article.ArticleStatus.RELEASE)
+                .build();
+        entityManager.persist(article);
+        entityManager.flush();
+        Long articleId = article.getId();
+
+        // When - 执行点赞
+        articleService.likeArticle(articleId);
+
+        // Then - 验证点赞数 +1
+        entityManager.clear();
+        Article liked = entityManager.find(Article.class, articleId);
+        assertThat(liked.getLikeCount()).isEqualTo(6);
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("测试文章浏览 - 增加浏览数")
+    void testViewArticle() {
+        // Given - 创建一篇文章
+        Article article = Article.builder()
+                .title("浏览测试文章")
+                .content("这是用于测试浏览的文章内容，长度足够")
+                .author(testUser)
+                .viewCount(10)
+                .status(Article.ArticleStatus.RELEASE)
+                .build();
+        entityManager.persist(article);
+        entityManager.flush();
+        Long articleId = article.getId();
+
+        // When - 执行浏览
+        articleService.viewArticle(articleId);
+
+        // Then - 验证浏览数 +1
+        entityManager.clear();
+        Article viewed = entityManager.find(Article.class, articleId);
+        assertThat(viewed.getViewCount()).isEqualTo(11);
+    }
+
 }
