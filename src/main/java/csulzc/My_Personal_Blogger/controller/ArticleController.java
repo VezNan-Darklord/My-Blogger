@@ -3,6 +3,7 @@ package csulzc.My_Personal_Blogger.controller;
 import csulzc.My_Personal_Blogger.api.dto.article.*;
 import csulzc.My_Personal_Blogger.api.dto.common.PageRequestDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
+import csulzc.My_Personal_Blogger.api.dto.common.BatchIdRequest;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -160,5 +161,62 @@ public class ArticleController {
         }
         articleService.deleteArticle(articleId);
         return ResponseEntity.ok(Result.success(null, "文章删除成功"));
+    }
+
+    @PostMapping("/batch/publish")
+    @Operation(summary = "批量发布文章", description = "需要管理员权限")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Integer>> batchPublishArticles(
+            @Valid @RequestBody BatchIdRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new IllegalArgumentException("文章ID列表不能为空");
+        }
+        int count = articleService.batchPublishArticles(request.getIds());
+        return ResponseEntity.ok(Result.success(count, "批量发布成功，共发布 " + count + " 篇文章"));
+    }
+
+    @PostMapping("/batch/archive")
+    @Operation(summary = "批量归档文章", description = "需要管理员权限")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Integer>> batchArchiveArticles(
+            @Valid @RequestBody BatchIdRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new IllegalArgumentException("文章ID列表不能为空");
+        }
+        int count = articleService.batchArchiveArticles(request.getIds());
+        return ResponseEntity.ok(Result.success(count, "批量归档成功，共归档 " + count + " 篇文章"));
+    }
+
+    @PostMapping("/batch/delete")
+    @Operation(summary = "批量删除文章", description = "需要管理员权限")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Integer>> batchDeleteArticles(
+            @Valid @RequestBody BatchIdRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new IllegalArgumentException("文章ID列表不能为空");
+        }
+        int count = articleService.batchDeleteArticles(request.getIds());
+        return ResponseEntity.ok(Result.success(count, "批量删除成功，共删除 " + count + " 篇文章"));
+    }
+
+    @PostMapping("/{articleId}/like")
+    @Operation(summary = "点赞文章", description = "需要登录")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Void>> likeArticle(@PathVariable Long articleId) {
+        if (articleId == null || articleId <= 0) {
+            throw new IllegalArgumentException("文章ID无效");
+        }
+        articleService.likeArticle(articleId);
+        return ResponseEntity.ok(Result.success(null, "点赞成功"));
+    }
+
+    @PostMapping("/{articleId}/view")
+    @Operation(summary = "浏览文章", description = "公开访问，记录浏览数")
+    public ResponseEntity<Result<Void>> viewArticle(@PathVariable Long articleId) {
+        if (articleId == null || articleId <= 0) {
+            throw new IllegalArgumentException("文章ID无效");
+        }
+        articleService.viewArticle(articleId);
+        return ResponseEntity.ok(Result.success(null, "记录浏览成功"));
     }
 }

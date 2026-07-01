@@ -4,6 +4,8 @@ import csulzc.My_Personal_Blogger.api.dto.comment.CommentCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentReplyDTO;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
+import csulzc.My_Personal_Blogger.api.dto.common.BatchIdRequest;
+import csulzc.My_Personal_Blogger.api.dto.comment.CommentBatchApprovalRequest;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -135,5 +137,30 @@ public class CommentController {
         }
         long count = commentService.countCommentsByUser(userId);
         return ResponseEntity.ok(Result.success(count));
+    }
+
+    @PostMapping("/batch/delete")
+    @Operation(summary = "批量删除评论", description = "需要管理员权限")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Integer>> batchDeleteComments(
+            @Valid @RequestBody BatchIdRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new IllegalArgumentException("评论ID列表不能为空");
+        }
+        int count = commentService.batchDeleteComments(request.getIds());
+        return ResponseEntity.ok(Result.success(count, "批量删除成功，共删除 " + count + " 条评论"));
+    }
+
+    @PostMapping("/batch/approve")
+    @Operation(summary = "批量审核评论", description = "需要管理员权限")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Result<Integer>> batchApproveComments(
+            @Valid @RequestBody CommentBatchApprovalRequest request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new IllegalArgumentException("评论ID列表不能为空");
+        }
+        int count = commentService.batchApproveComments(request.getIds(), request.isApproved());
+        String message = request.isApproved() ? "批量审核通过，共 " + count + " 条" : "批量审核不通过，共 " + count + " 条";
+        return ResponseEntity.ok(Result.success(count, message));
     }
 }

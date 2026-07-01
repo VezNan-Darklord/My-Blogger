@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentDTO;
 import csulzc.My_Personal_Blogger.api.dto.comment.CommentReplyDTO;
+import csulzc.My_Personal_Blogger.api.dto.comment.CommentBatchApprovalRequest;
+import csulzc.My_Personal_Blogger.api.dto.common.BatchIdRequest;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.UserProfileDTO;
 import csulzc.My_Personal_Blogger.config.JwtProperties;
@@ -375,4 +377,98 @@ class CommentControllerTest {
         mockMvc.perform(get("/api/comments/user/{userId}/count", 0))
                 .andExpect(status().isBadRequest());
     }
+
+    // ==================== 批量操作测试 ====================
+
+    @Test
+    @Order(19)
+    @DisplayName("测试批量删除评论 - 成功")
+    void testBatchDeleteComments_Success() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of(1L, 2L, 3L));
+        given(commentService.batchDeleteComments(anyList()))
+                .willReturn(3);
+
+        // When & Then
+        mockMvc.perform(post("/api/comments/batch/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(3));
+
+        then(commentService).should().batchDeleteComments(anyList());
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("测试批量删除评论 - ID列表为空")
+    void testBatchDeleteComments_EmptyIds() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of());
+
+        // When & Then
+        mockMvc.perform(post("/api/comments/batch/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("测试批量审核评论 - 通过")
+    void testBatchApproveComments_Success() throws Exception {
+        // Given
+        CommentBatchApprovalRequest request = new CommentBatchApprovalRequest(
+                java.util.List.of(1L, 2L), true);
+        given(commentService.batchApproveComments(anyList(), eq(true)))
+                .willReturn(2);
+
+        // When & Then
+        mockMvc.perform(post("/api/comments/batch/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(2));
+
+        then(commentService).should().batchApproveComments(anyList(), eq(true));
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("测试批量审核评论 - 不通过")
+    void testBatchApproveComments_Disapprove() throws Exception {
+        // Given
+        CommentBatchApprovalRequest request = new CommentBatchApprovalRequest(
+                java.util.List.of(1L), false);
+        given(commentService.batchApproveComments(anyList(), eq(false)))
+                .willReturn(1);
+
+        // When & Then
+        mockMvc.perform(post("/api/comments/batch/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(1));
+
+        then(commentService).should().batchApproveComments(anyList(), eq(false));
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("测试批量审核评论 - ID列表为空")
+    void testBatchApproveComments_EmptyIds() throws Exception {
+        // Given
+        CommentBatchApprovalRequest request = new CommentBatchApprovalRequest(
+                java.util.List.of(), true);
+
+        // When & Then
+        mockMvc.perform(post("/api/comments/batch/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
 }

@@ -5,6 +5,7 @@ import csulzc.My_Personal_Blogger.api.dto.article.ArticleCreateRequest;
 import csulzc.My_Personal_Blogger.api.dto.article.ArticleDetailDTO;
 import csulzc.My_Personal_Blogger.api.dto.article.ArticleUpdateRequest;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
+import csulzc.My_Personal_Blogger.api.dto.common.BatchIdRequest;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.config.JwtProperties;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
@@ -468,4 +469,133 @@ class ArticleControllerTest {
                         .param("size", "101"))  // 超过最大限制100
                 .andExpect(status().isBadRequest());
     }
+
+    // ==================== 批量操作测试 ====================
+
+    @Test
+    @Order(17)
+    @DisplayName("测试批量发布文章 - 成功")
+    void testBatchPublishArticles_Success() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of(1L, 2L, 3L));
+        given(articleService.batchPublishArticles(anyList()))
+                .willReturn(3);
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/batch/publish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(3));
+
+        then(articleService).should().batchPublishArticles(anyList());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("测试批量发布文章 - ID列表为空")
+    void testBatchPublishArticles_EmptyIds() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of());
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/batch/publish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("测试批量归档文章 - 成功")
+    void testBatchArchiveArticles_Success() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of(1L, 2L));
+        given(articleService.batchArchiveArticles(anyList()))
+                .willReturn(2);
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/batch/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(2));
+
+        then(articleService).should().batchArchiveArticles(anyList());
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("测试批量删除文章 - 成功")
+    void testBatchDeleteArticles_Success() throws Exception {
+        // Given
+        BatchIdRequest request = new BatchIdRequest(java.util.List.of(1L, 2L, 3L, 4L));
+        given(articleService.batchDeleteArticles(anyList()))
+                .willReturn(4);
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/batch/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(4));
+
+        then(articleService).should().batchDeleteArticles(anyList());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("测试点赞文章 - 成功")
+    void testLikeArticle_Success() throws Exception {
+        // Given
+        Long articleId = 1L;
+        doNothing().when(articleService).likeArticle(eq(articleId));
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/{articleId}/like", articleId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("点赞成功"));
+
+        then(articleService).should().likeArticle(eq(articleId));
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("测试点赞文章 - 无效ID")
+    void testLikeArticle_InvalidId() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/articles/{articleId}/like", -1))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("测试浏览文章 - 成功")
+    void testViewArticle_Success() throws Exception {
+        // Given
+        Long articleId = 1L;
+        doNothing().when(articleService).viewArticle(eq(articleId));
+
+        // When & Then
+        mockMvc.perform(post("/api/articles/{articleId}/view", articleId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("记录浏览成功"));
+
+        then(articleService).should().viewArticle(eq(articleId));
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("测试浏览文章 - 无效ID")
+    void testViewArticle_InvalidId() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/articles/{articleId}/view", 0))
+                .andExpect(status().isBadRequest());
+    }
+
 }
