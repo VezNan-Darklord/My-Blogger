@@ -107,21 +107,11 @@ public class UserController {
     @PostMapping("/{userId}/change-password")
     public ResponseEntity<Result<Void>> changePassword(
             @PathVariable Long userId,
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword) {
+            @Valid @RequestBody UserPasswordChangeRequest request) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
         }
-        if (oldPassword == null || oldPassword.isEmpty()) {
-            throw new IllegalArgumentException("原密码不能为空");
-        }
-        if (newPassword == null || newPassword.isEmpty()) {
-            throw new IllegalArgumentException("新密码不能为空");
-        }
-        if (newPassword.length() < 6 || newPassword.length() > 20) {
-            throw new IllegalArgumentException("新密码长度必须在6-20之间");
-        }
-        userService.changePassword(userId, oldPassword, newPassword);
+        userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
         return ResponseEntity.ok(Result.success(null, "密码修改成功"));
     }
 

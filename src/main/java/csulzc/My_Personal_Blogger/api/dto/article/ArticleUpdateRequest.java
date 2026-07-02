@@ -22,6 +22,7 @@ public class ArticleUpdateRequest {
 
     private String coverImage;
 
+    @Size(min = 1, message = "至少选择一个分类")
     private Set<Long> categoryIds;
 
     private Article.ArticleStatus status;

@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import jakarta.validation.constraints.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,12 +17,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PageRequestDTO {
+    @Min(value = 0, message = "页码不能小于0")
     private int page;
 
+    @Min(value = 1, message = "每页数量不能小于1")
+    @Max(value = 100, message = "每页数量不能大于100")
     private int size;
 
+    @Pattern(regexp = "^[a-zA-Z0-9_\\-.]+$", message = "排序字段只能包含字母、数字和下划线")
     private String sortBy;
 
+    @Pattern(regexp = "^(asc|desc|ASC|DESC)$", message = "只能按照升序或降序排列")
     private String sortDirection;
 
     public Pageable toPageable() {
