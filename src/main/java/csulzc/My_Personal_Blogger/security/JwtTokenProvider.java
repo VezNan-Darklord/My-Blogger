@@ -47,6 +47,7 @@ public class JwtTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        claims.put("type", "access");
 
         SecretKey key = getSigningKey();
 
@@ -55,6 +56,7 @@ public class JwtTokenProvider {
                 .subject(username)
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .notBefore(now)
                 .signWith(key)
                 .compact();
     }
@@ -68,6 +70,7 @@ public class JwtTokenProvider {
         claims.put("userId", userId);
         claims.put("username", username);
         claims.put("role", role);
+        claims.put("type", "access");
 
         SecretKey key = getSigningKey();
 
@@ -76,6 +79,7 @@ public class JwtTokenProvider {
                 .subject(username)
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .notBefore(now)
                 .signWith(key)
                 .compact();
     }
@@ -114,7 +118,22 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         try {
-            parseToken(token);
+            Claims claims = parseToken(token);
+
+            Date expiration = claims.getExpiration();
+            Date notBefore = claims.getNotBefore();
+            Date now = new Date();
+
+            if (now.before(notBefore)) {
+                log.error("Token尚未生效");
+                return false;
+            }
+
+            if (now.after(expiration)) {
+                log.error("Token已过期");
+                return false;
+            }
+
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             log.error("JWT验证失败: {}", e.getMessage());

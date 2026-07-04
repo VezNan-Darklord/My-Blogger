@@ -8,6 +8,7 @@ import csulzc.My_Personal_Blogger.repository.ArticleRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
 import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
+import csulzc.My_Personal_Blogger.security.PasswordValidator;
 import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final SecurityContextUtil securityContextUtil;
+    private final PasswordValidator passwordValidator;
 
     // ==================== 用户注册与登录 ====================
 
@@ -44,17 +46,16 @@ public class UserService {
      */
     @Transactional
     public UserDetailDTO register(UserRegisterRequest request) {
-        // 检查用户名是否存在
+        passwordValidator.validate(request.getPassword());
+
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("用户名已存在");
         }
 
-        // 检查邮箱是否存在
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("邮箱已被注册");
         }
 
-        // 创建用户
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -225,11 +226,17 @@ public class UserService {
             throw new SecurityException("无权限修改此用户密码");
         }
 
+        passwordValidator.validate(newPassword);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("原密码错误");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("新密码不能与原密码相同");
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -240,8 +247,9 @@ public class UserService {
     /**
      * 重置密码（管理员功能）
      */
-    @Transactional
     public void resetPassword(Long userId, String newPassword) {
+        passwordValidator.validate(newPassword);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
 
@@ -249,6 +257,7 @@ public class UserService {
         user.setPasswordUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
+
 
     // ==================== 用户统计信息 ====================
 
