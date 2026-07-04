@@ -4,6 +4,7 @@ import csulzc.My_Personal_Blogger.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -27,8 +28,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+    @Profile("prod")
+    public PasswordEncoder prodPasswordEncoder() {
+        return new BCryptPasswordEncoder(10);
+    }
+
+    @Bean
+    @Profile("dev")
+    public PasswordEncoder devPasswordEncoder() {
+        return new BCryptPasswordEncoder(8);
+    }
+
+    @Bean
+    @Profile("test")
+    public PasswordEncoder testPasswordEncoder() {
+        return new BCryptPasswordEncoder(4);
     }
 
     @Bean
