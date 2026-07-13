@@ -2,18 +2,27 @@ package csulzc.My_Personal_Blogger.service;
 
 import csulzc.My_Personal_Blogger.api.dto.dashboard.DashboardStatsDTO;
 import csulzc.My_Personal_Blogger.domain.entity.Article;
+import csulzc.My_Personal_Blogger.domain.entity.Category;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.repository.ArticleRepository;
+import csulzc.My_Personal_Blogger.repository.CategoryRepository;
 import csulzc.My_Personal_Blogger.repository.CommentRepository;
 import csulzc.My_Personal_Blogger.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +31,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
+    private final CategoryRepository categoryRepository;
 
     @Transactional(readOnly = true)
     public DashboardStatsDTO getDashboardStats() {
@@ -96,11 +106,89 @@ public class AdminService {
     }
 
     private Object getCategoryStats() {
-        return Map.of("message", "分类统计功能待实现");
+        List<Object[]> categoryData = categoryRepository.findAllWithArticleCount();
+        long totalArticles = articleRepository.count();
+
+        List<Map<String, Object>> categoryStats = categoryData.stream()
+                .map(obj -> {
+                    Category category = (Category) obj[0];
+                    Long articleCount = (Long) obj[1];
+                    BigDecimal percentage = totalArticles > 0
+                            ? BigDecimal.valueOf(articleCount * 100L)
+                            .divide(BigDecimal.valueOf(totalArticles), 2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
+
+                    Map<String, Object> stats = new LinkedHashMap<>();
+                    stats.put("categoryId", category.getId());
+                    stats.put("categoryName", category.getName());
+                    stats.put("articleCount", articleCount);
+                    stats.put("percentage", percentage);
+                    return stats;
+                })
+                .sorted((a, b) -> Long.compare((Long) b.get("articleCount"), (Long) a.get("articleCount")))
+                .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalCategories", categoryData.size());
+        result.put("categoryDistribution", categoryStats);
+        return result;
     }
 
     private Object getRecentActivity() {
-        return Map.of("message", "最近活动功能待实现");
+        // 最近注册的 5 位用户
+        List<Map<String, Object>> recentUsers = userRepository.findAll(
+                        PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent()
+                .stream()
+                .map(user -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("userId", user.getId());
+                    map.put("username", user.getUsername());
+                    map.put("displayName", user.getDisplayName());
+                    map.put("registeredAt", user.getCreatedAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        // 最近的 5 篇文章
+        List<Map<String, Object>> recentArticles = articleRepository.findAll(
+                        PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent()
+                .stream()
+                .map(article -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("articleId", article.getId());
+                    map.put("title", article.getTitle());
+                    map.put("authorName", article.getAuthor() != null ? article.getAuthor().getUsername() : "未知");
+                    map.put("publishedAt", article.getCreatedAt());
+                    map.put("status", article.getStatus());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        // 最近的 5 条评论
+        List<Map<String, Object>> recentComments = commentRepository.findAll(
+                        PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent()
+                .stream()
+                .map(comment -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("commentId", comment.getId());
+                    map.put("content", comment.getContent() != null && comment.getContent().length() > 50
+                            ? comment.getContent().substring(0, 50) + "..."
+                            : comment.getContent());
+                    map.put("commenterName", comment.getCommenter() != null ? comment.getCommenter().getUsername() : "未知");
+                    map.put("articleTitle", comment.getArticle() != null ? comment.getArticle().getTitle() : "未知");
+                    map.put("commentedAt", comment.getCreatedAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("recentUsers", recentUsers);
+        result.put("recentArticles", recentArticles);
+        result.put("recentComments", recentComments);
+        return result;
     }
 
     public boolean isAdmin(Long userId) {
