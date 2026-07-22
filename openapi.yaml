@@ -1,0 +1,2523 @@
+openapi: "3.0.3"
+info:
+  title: "个人博客系统 API 文档"
+  description: "基于 Spring Boot 3.2.5 构建的个人博客系统 RESTful API"
+  version: "1.0.0"
+  contact:
+    name: "林子诚"
+    email: "941435991@qq.com"
+  license:
+    name: "Apache 2.0"
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+
+servers:
+  - url: "http://localhost:8080"
+    description: "本地开发环境"
+
+paths:
+  # ==================== 用户模块 ====================
+  /api/users/register:
+    post:
+      tags:
+        - "用户管理"
+      summary: "用户注册"
+      operationId: "registerUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterRequest"
+      responses:
+        "200":
+          description: "注册成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserDetailDTO"
+
+  /api/users/login:
+    post:
+      tags:
+        - "用户管理"
+      summary: "用户登录（返回Token）"
+      operationId: "loginUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginRequest"
+      responses:
+        "200":
+          description: "登录成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponseDTO"
+
+  /api/users/refresh:
+    post:
+      tags:
+        - "用户管理"
+      summary: "刷新Token"
+      operationId: "refreshToken"
+      parameters:
+        - name: "refreshToken"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Token刷新成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponseDTO"
+
+  /api/users/{userId}:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取用户详情（通过ID）"
+      operationId: "getUserDetail"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserDetailDTO"
+    put:
+      tags:
+        - "用户管理"
+      summary: "更新用户信息"
+      operationId: "updateUser"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateRequest"
+      responses:
+        "200":
+          description: "更新成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserDetailDTO"
+    delete:
+      tags:
+        - "用户管理"
+      summary: "删除用户（管理员功能）"
+      operationId: "deleteUser"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "softDelete"
+          in: "query"
+          required: false
+          schema:
+            type: "boolean"
+            default: true
+      responses:
+        "200":
+          description: "操作成功"
+
+  /api/users/username/{username}:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取用户详情（通过用户名）"
+      operationId: "getUserDetailByUsername"
+      parameters:
+        - name: "username"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserDetailDTO"
+
+  /api/users/{userId}/profile:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取用户公开资料"
+      operationId: "getUserProfile"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserProfileDTO"
+
+  /api/users/{userId}/change-password:
+    post:
+      tags:
+        - "用户管理"
+      summary: "修改密码"
+      operationId: "changePassword"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPasswordChangeRequest"
+      responses:
+        "200":
+          description: "密码修改成功"
+
+  /api/users/{userId}/activity:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取用户活动统计"
+      operationId: "getUserActivity"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/UserActivityDTO"
+
+  /api/users:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取所有用户（分页）"
+      operationId: "getAllUsers"
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            default: "createdAt"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_UserProfileDTO"
+
+  /api/users/search:
+    get:
+      tags:
+        - "用户管理"
+      summary: "搜索用户"
+      operationId: "searchUsers"
+      parameters:
+        - name: "keyword"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_UserProfileDTO"
+
+  /api/users/{userId}/activate:
+    post:
+      tags:
+        - "用户管理"
+      summary: "启用用户（管理员功能）"
+      operationId: "activateUser"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "用户已启用"
+
+  /api/users/{userId}/deactivate:
+    post:
+      tags:
+        - "用户管理"
+      summary: "禁用用户（管理员功能）"
+      operationId: "deactivateUser"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "用户已禁用"
+
+  /api/users/{userId}/lock:
+    post:
+      tags:
+        - "用户管理"
+      summary: "锁定用户（管理员功能）"
+      operationId: "lockUser"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "用户已锁定"
+
+  /api/users/{userId}/unlock:
+    post:
+      tags:
+        - "用户管理"
+      summary: "解锁用户（管理员功能）"
+      operationId: "unlockUser"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "用户已解锁"
+
+  /api/users/stats/active:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取活跃用户数"
+      operationId: "countActiveUsers"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/users/stats/total:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取总用户数"
+      operationId: "getTotalUserCount"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/users/stats/recently-active:
+    get:
+      tags:
+        - "用户管理"
+      summary: "获取最近活跃用户列表"
+      operationId: "getRecentlyActiveUsers"
+      parameters:
+        - name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/UserActivityDTO"
+
+  # ==================== 文章模块 ====================
+  /api/articles:
+    post:
+      tags:
+        - "文章管理"
+      summary: "创建文章"
+      description: "需要登录，自动使用当前用户作为作者"
+      operationId: "createArticle"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleCreateRequest"
+      responses:
+        "200":
+          description: "文章创建成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/ArticleDetailDTO"
+    get:
+      tags:
+        - "文章管理"
+      summary: "获取文章列表"
+      description: "公开访问，支持分页"
+      operationId: "getArticleList"
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+        - name: "sortDirection"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: [ "asc", "desc", "ASC", "DESC" ]
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_ArticleListItemDTO"
+
+  /api/articles/{articleId}:
+    put:
+      tags:
+        - "文章管理"
+      summary: "更新文章"
+      description: "需要登录且为文章作者或管理员"
+      operationId: "updateArticle"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleUpdateRequest"
+      responses:
+        "200":
+          description: "文章更新成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/ArticleDetailDTO"
+    get:
+      tags:
+        - "文章管理"
+      summary: "获取文章详情"
+      description: "公开访问"
+      operationId: "getArticleById"
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/ArticleDetailDTO"
+    delete:
+      tags:
+        - "文章管理"
+      summary: "删除文章"
+      description: "需要登录且为文章作者或管理员"
+      operationId: "deleteArticle"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "文章删除成功"
+
+  /api/articles/{articleId}/publish:
+    post:
+      tags:
+        - "文章管理"
+      summary: "发布文章"
+      description: "需要登录且为文章作者或管理员"
+      operationId: "publishArticle"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "文章发布成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/ArticleDetailDTO"
+
+  /api/articles/{articleId}/archive:
+    post:
+      tags:
+        - "文章管理"
+      summary: "归档文章"
+      description: "需要登录且为文章作者或管理员"
+      operationId: "archiveArticle"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "文章归档成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/ArticleDetailDTO"
+
+  /api/articles/{articleId}/like:
+    post:
+      tags:
+        - "文章管理"
+      summary: "点赞文章"
+      description: "需要登录"
+      operationId: "likeArticle"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "点赞成功"
+
+  /api/articles/{articleId}/view:
+    post:
+      tags:
+        - "文章管理"
+      summary: "浏览文章"
+      description: "公开访问，记录浏览数"
+      operationId: "viewArticle"
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "记录浏览成功"
+
+  /api/articles/author/{authorId}:
+    get:
+      tags:
+        - "文章管理"
+      summary: "获取作者的文章列表"
+      description: "公开访问"
+      operationId: "getArticlesByAuthor"
+      parameters:
+        - name: "authorId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+        - name: "sortDirection"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: [ "asc", "desc", "ASC", "DESC" ]
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_ArticleListItemDTO"
+
+  /api/articles/search:
+    get:
+      tags:
+        - "文章管理"
+      summary: "搜索文章"
+      description: "公开访问"
+      operationId: "searchArticles"
+      parameters:
+        - name: "keyword"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+        - name: "sortDirection"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: [ "asc", "desc", "ASC", "DESC" ]
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_ArticleListItemDTO"
+
+  /api/articles/batch/publish:
+    post:
+      tags:
+        - "文章管理"
+      summary: "批量发布文章"
+      description: "需要管理员权限"
+      operationId: "batchPublishArticles"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIdRequest"
+      responses:
+        "200":
+          description: "批量发布成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+
+  /api/articles/batch/archive:
+    post:
+      tags:
+        - "文章管理"
+      summary: "批量归档文章"
+      description: "需要管理员权限"
+      operationId: "batchArchiveArticles"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIdRequest"
+      responses:
+        "200":
+          description: "批量归档成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+
+  /api/articles/batch/delete:
+    post:
+      tags:
+        - "文章管理"
+      summary: "批量删除文章"
+      description: "需要管理员权限"
+      operationId: "batchDeleteArticles"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIdRequest"
+      responses:
+        "200":
+          description: "批量删除成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+
+  # ==================== 分类模块 ====================
+  /api/categories:
+    post:
+      tags:
+        - "分类管理"
+      summary: "创建分类"
+      operationId: "createCategory"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryRequest"
+      responses:
+        "200":
+          description: "分类创建成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryDTO"
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取所有分类（分页）"
+      operationId: "getAllCategories"
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            default: "createdAt"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_CategoryDTO"
+
+  /api/categories/{categoryId}:
+    put:
+      tags:
+        - "分类管理"
+      summary: "更新分类"
+      operationId: "updateCategory"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryRequest"
+      responses:
+        "200":
+          description: "分类更新成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryDTO"
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类详情（通过ID）"
+      operationId: "getCategoryById"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryDTO"
+    delete:
+      tags:
+        - "分类管理"
+      summary: "删除分类"
+      operationId: "deleteCategory"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "分类删除成功"
+
+  /api/categories/name/{name}:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类详情（通过名称）"
+      operationId: "getCategoryByName"
+      parameters:
+        - name: "name"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/top-level:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取所有顶级分类"
+      operationId: "getAllTopLevelCategories"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/{categoryId}/subcategories:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取某个分类的所有子分类"
+      operationId: "getSubCategories"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/tree:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类树（用于前端下拉选择器）"
+      operationId: "buildCategoryTree"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryTreeDTO"
+
+  /api/categories/{categoryId}/path:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类的完整路径（从根到当前分类）"
+      operationId: "getCategoryPath"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/statistics:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取所有分类及其文章数量统计"
+      operationId: "getCategoryStatistics"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryStatDTO"
+
+  /api/categories/statistics/percentage:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类的文章占比统计"
+      operationId: "getCategoryPercentageStats"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryStatDTO"
+
+  /api/categories/{categoryId}/article-count:
+    get:
+      tags:
+        - "分类管理"
+      summary: "计算分类的文章数量（包含子分类）"
+      operationId: "countArticlesInCategoryIncludingSubCategories"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/categories/search:
+    get:
+      tags:
+        - "分类管理"
+      summary: "搜索分类"
+      operationId: "searchCategories"
+      parameters:
+        - name: "keyword"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/with-articles:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取有文章的分类列表"
+      operationId: "getCategoriesWithArticles"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "array"
+                        items:
+                          $ref: "#/components/schemas/CategoryDTO"
+
+  /api/categories/{categoryId}/transfer:
+    delete:
+      tags:
+        - "分类管理"
+      summary: "删除分类并转移文章"
+      operationId: "deleteCategoryAndTransferArticles"
+      parameters:
+        - name: "categoryId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "targetCategoryId"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "分类删除成功，文章已转移"
+
+  /api/categories/stats/total:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取分类总数"
+      operationId: "getTotalCategoryCount"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/categories/stats/top-level:
+    get:
+      tags:
+        - "分类管理"
+      summary: "获取顶级分类数量"
+      operationId: "getTopLevelCategoryCount"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  # ==================== 评论模块 ====================
+  /api/comments/article/{articleId}:
+    post:
+      tags:
+        - "评论管理"
+      summary: "创建评论"
+      description: "需要登录，自动使用当前用户作为评论者"
+      operationId: "createComment"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "200":
+          description: "评论发表成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CommentDTO"
+    get:
+      tags:
+        - "评论管理"
+      summary: "获取文章评论列表"
+      description: "公开访问"
+      operationId: "getTopLevelComments"
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            default: "createdAt"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_CommentDTO"
+
+  /api/comments/{commentId}:
+    get:
+      tags:
+        - "评论管理"
+      summary: "获取评论详情"
+      description: "公开访问"
+      operationId: "getCommentById"
+      parameters:
+        - name: "commentId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/CommentDTO"
+    delete:
+      tags:
+        - "评论管理"
+      summary: "删除评论"
+      description: "需要登录且为评论作者或管理员"
+      operationId: "deleteComment"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "commentId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "评论删除成功"
+
+  /api/comments/{commentId}/replies:
+    get:
+      tags:
+        - "评论管理"
+      summary: "获取评论回复列表"
+      description: "公开访问"
+      operationId: "getCommentReplies"
+      parameters:
+        - name: "commentId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            default: "createdAt"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_CommentReplyDTO"
+
+  /api/comments/user/{userId}:
+    get:
+      tags:
+        - "评论管理"
+      summary: "获取用户评论列表"
+      description: "公开访问"
+      operationId: "getUserComments"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "page"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 0
+        - name: "size"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            default: 10
+        - name: "sortBy"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            default: "createdAt"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/PageResponseDTO_CommentDTO"
+
+  /api/comments/article/{articleId}/count:
+    get:
+      tags:
+        - "评论管理"
+      summary: "统计文章评论数"
+      description: "公开访问"
+      operationId: "countCommentsByArticle"
+      parameters:
+        - name: "articleId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/comments/user/{userId}/count:
+    get:
+      tags:
+        - "评论管理"
+      summary: "统计用户评论数"
+      description: "公开访问"
+      operationId: "countCommentsByUser"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+                        format: "int64"
+
+  /api/comments/batch/delete:
+    post:
+      tags:
+        - "评论管理"
+      summary: "批量删除评论"
+      description: "需要管理员权限"
+      operationId: "batchDeleteComments"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIdRequest"
+      responses:
+        "200":
+          description: "批量删除成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+
+  /api/comments/batch/approve:
+    post:
+      tags:
+        - "评论管理"
+      summary: "批量审核评论"
+      description: "需要管理员权限"
+      operationId: "batchApproveComments"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentBatchApprovalRequest"
+      responses:
+        "200":
+          description: "批量审核成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        type: "integer"
+
+  # ==================== 文件管理模块 ====================
+  /api/files/upload:
+    post:
+      tags:
+        - "文件管理"
+      summary: "上传文件"
+      description: "上传图片文件到服务器（需要登录）"
+      operationId: "uploadFile"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  format: "binary"
+                  description: "要上传的文件"
+      responses:
+        "200":
+          description: "文件上传成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/FileUploadResponse"
+
+  /api/files/upload-base64:
+    post:
+      tags:
+        - "文件管理"
+      summary: "Base64文件上传"
+      description: "接收Base64编码数据并保存为文件（需要登录）"
+      operationId: "uploadBase64File"
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Base64UploadRequest"
+      responses:
+        "200":
+          description: "Base64文件上传成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/FileUploadResponse"
+
+  /api/files/{fileName}:
+    get:
+      tags:
+        - "文件管理"
+      summary: "下载文件"
+      description: "根据文件名下载或访问文件（公开访问）"
+      operationId: "downloadFile"
+      parameters:
+        - name: "fileName"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "文件内容"
+          content:
+            application/octet-stream:
+              schema:
+                type: "string"
+                format: "binary"
+    delete:
+      tags:
+        - "文件管理"
+      summary: "删除文件"
+      description: "根据文件名删除文件（需要登录）"
+      operationId: "deleteFile"
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: "fileName"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "文件删除成功"
+
+  /api/files/{fileName}/base64:
+    get:
+      tags:
+        - "文件管理"
+      summary: "文件转Base64"
+      description: "将指定文件转换为Base64编码字符串（公开访问）"
+      operationId: "getFileAsBase64"
+      parameters:
+        - name: "fileName"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Result"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/FileUploadResponse"
+
+  # ==================== 管理后台模块 ====================
+  /api/admin/dashboard/stats:
+    get:
+      tags:
+        - "管理后台"
+      summary: "获取看板统计数据"
+      description: "仅管理员可访问"
+      operationId: "getDashboardStats"
+      security:
+        - BearerAuth: [ "ROLE_ADMIN" ]
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/DashboardStatsDTO"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+      description: "输入JWT Token（不含Bearer前缀，仅输入Token字符串）"
+
+  schemas:
+    # ==================== 公共通用 ====================
+    Result:
+      type: "object"
+      properties:
+        data:
+          type: "object"
+          nullable: true
+        message:
+          type: "string"
+          example: "success"
+        code:
+          type: "integer"
+          example: 200
+
+    ApiResponse:
+      type: "object"
+      properties:
+        success:
+          type: "boolean"
+          example: true
+        message:
+          type: "string"
+          example: "操作成功"
+        data:
+          type: "object"
+          nullable: true
+        errorCode:
+          type: "string"
+          nullable: true
+        timestamp:
+          type: "string"
+          format: "date-time"
+
+    BaseDTO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        updatedAt:
+          type: "string"
+          format: "date-time"
+
+    PageRequestDTO:
+      type: "object"
+      properties:
+        page:
+          type: "integer"
+          format: "int32"
+          minimum: 0
+          default: 0
+        size:
+          type: "integer"
+          format: "int32"
+          minimum: 1
+          maximum: 100
+          default: 10
+        sortBy:
+          type: "string"
+          pattern: "^[a-zA-Z0-9_\\-.]+$"
+        sortDirection:
+          type: "string"
+          enum: [ "asc", "desc", "ASC", "DESC" ]
+
+    PageResponseDTO_ArticleListItemDTO:
+      type: "object"
+      properties:
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/ArticleListItemDTO"
+        page:
+          type: "integer"
+          format: "int32"
+        size:
+          type: "integer"
+          format: "int32"
+        totalElements:
+          type: "integer"
+          format: "int64"
+        totalPages:
+          type: "integer"
+          format: "int32"
+        first:
+          type: "boolean"
+        last:
+          type: "boolean"
+
+    PageResponseDTO_CategoryDTO:
+      type: "object"
+      properties:
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CategoryDTO"
+        page:
+          type: "integer"
+          format: "int32"
+        size:
+          type: "integer"
+          format: "int32"
+        totalElements:
+          type: "integer"
+          format: "int64"
+        totalPages:
+          type: "integer"
+          format: "int32"
+        first:
+          type: "boolean"
+        last:
+          type: "boolean"
+
+    PageResponseDTO_CommentDTO:
+      type: "object"
+      properties:
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CommentDTO"
+        page:
+          type: "integer"
+          format: "int32"
+        size:
+          type: "integer"
+          format: "int32"
+        totalElements:
+          type: "integer"
+          format: "int64"
+        totalPages:
+          type: "integer"
+          format: "int32"
+        first:
+          type: "boolean"
+        last:
+          type: "boolean"
+
+    PageResponseDTO_CommentReplyDTO:
+      type: "object"
+      properties:
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CommentReplyDTO"
+        page:
+          type: "integer"
+          format: "int32"
+        size:
+          type: "integer"
+          format: "int32"
+        totalElements:
+          type: "integer"
+          format: "int64"
+        totalPages:
+          type: "integer"
+          format: "int32"
+        first:
+          type: "boolean"
+        last:
+          type: "boolean"
+
+    PageResponseDTO_UserProfileDTO:
+      type: "object"
+      properties:
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/UserProfileDTO"
+        page:
+          type: "integer"
+          format: "int32"
+        size:
+          type: "integer"
+          format: "int32"
+        totalElements:
+          type: "integer"
+          format: "int64"
+        totalPages:
+          type: "integer"
+          format: "int32"
+        first:
+          type: "boolean"
+        last:
+          type: "boolean"
+
+    BatchIdRequest:
+      type: "object"
+      required: [ "ids" ]
+      properties:
+        ids:
+          type: "array"
+          items:
+            type: "integer"
+            format: "int64"
+          description: "ID列表"
+
+    FileUploadResponse:
+      type: "object"
+      properties:
+        fileName:
+          type: "string"
+        fileUrl:
+          type: "string"
+        fileType:
+          type: "string"
+        fileSize:
+          type: "integer"
+          format: "int64"
+        base64Data:
+          type: "string"
+          nullable: true
+          description: "Base64编码数据（可选）"
+
+    Base64UploadRequest:
+      type: "object"
+      required: [ "base64Data", "fileName" ]
+      properties:
+        base64Data:
+          type: "string"
+          description: "Base64数据"
+        fileName:
+          type: "string"
+          maxLength: 255
+          description: "文件名"
+
+    # ==================== 用户模块 ====================
+    UserRegisterRequest:
+      type: "object"
+      required: [ "username", "email", "password" ]
+      properties:
+        username:
+          type: "string"
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: "用户名"
+        email:
+          type: "string"
+          format: "email"
+          description: "邮箱"
+        password:
+          type: "string"
+          minLength: 6
+          maxLength: 20
+          description: "密码"
+        displayName:
+          type: "string"
+          maxLength: 50
+          description: "显示名称"
+
+    UserLoginRequest:
+      type: "object"
+      required: [ "loginId", "password" ]
+      properties:
+        loginId:
+          type: "string"
+          description: "用户名/邮箱"
+        password:
+          type: "string"
+          description: "密码"
+
+    LoginResponseDTO:
+      type: "object"
+      properties:
+        accessToken:
+          type: "string"
+        refreshToken:
+          type: "string"
+        tokenType:
+          type: "string"
+          default: "Bearer"
+        expiresIn:
+          type: "integer"
+          format: "int64"
+        user:
+          $ref: "#/components/schemas/UserDetailDTO"
+
+    UserDetailDTO:
+      allOf:
+        - $ref: "#/components/schemas/BaseDTO"
+        - type: "object"
+          properties:
+            username:
+              type: "string"
+            email:
+              type: "string"
+            displayName:
+              type: "string"
+            avatar:
+              type: "string"
+            bio:
+              type: "string"
+            status:
+              $ref: "#/components/schemas/UserStatusType"
+            lastLoginAt:
+              type: "string"
+              format: "date-time"
+            articleCount:
+              type: "integer"
+              format: "int64"
+            commentCount:
+              type: "integer"
+              format: "int64"
+            favoriteCount:
+              type: "integer"
+              format: "int64"
+
+    UserProfileDTO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        username:
+          type: "string"
+        displayName:
+          type: "string"
+        avatar:
+          type: "string"
+          description: "头像URL"
+        bio:
+          type: "string"
+          description: "个人简介"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        articleCount:
+          type: "integer"
+          format: "int64"
+        commentCount:
+          type: "integer"
+          format: "int64"
+        followerCount:
+          type: "integer"
+          format: "int64"
+
+    UserUpdateRequest:
+      type: "object"
+      properties:
+        displayName:
+          type: "string"
+          maxLength: 50
+        bio:
+          type: "string"
+          maxLength: 200
+        avatar:
+          type: "string"
+
+    UserPasswordChangeRequest:
+      type: "object"
+      required: [ "oldPassword", "newPassword" ]
+      properties:
+        oldPassword:
+          type: "string"
+          description: "原密码"
+        newPassword:
+          type: "string"
+          minLength: 6
+          maxLength: 20
+          description: "新密码"
+
+    UserActivityDTO:
+      type: "object"
+      properties:
+        userId:
+          type: "integer"
+          format: "int64"
+        username:
+          type: "string"
+        displayName:
+          type: "string"
+        articleCount:
+          type: "integer"
+          format: "int64"
+        commentCount:
+          type: "integer"
+          format: "int64"
+        likeReceived:
+          type: "integer"
+          format: "int64"
+        lastActiveAt:
+          type: "string"
+          format: "date-time"
+
+    UserStatusType:
+      type: "string"
+      enum: [ "ACTIVE", "INACTIVE", "LOCKED" ]
+
+    # ==================== 文章模块 ====================
+    ArticleStatusType:
+      type: "string"
+      enum: [ "DRAFT", "RELEASE", "ARCHIVE" ]
+
+    ArticleCreateRequest:
+      type: "object"
+      required: [ "title", "content", "categoryIds" ]
+      properties:
+        title:
+          type: "string"
+          minLength: 5
+          maxLength: 100
+          description: "标题"
+        content:
+          type: "string"
+          minLength: 20
+          description: "内容（Markdown）"
+        summary:
+          type: "string"
+          maxLength: 200
+          description: "摘要"
+        coverImage:
+          type: "string"
+          description: "封面图URL"
+        categoryIds:
+          type: "array"
+          items:
+            type: "integer"
+            format: "int64"
+          minItems: 1
+          description: "分类ID集合"
+        status:
+          $ref: "#/components/schemas/ArticleStatusType"
+          default: "DRAFT"
+        tags:
+          type: "array"
+          items:
+            type: "string"
+          description: "标签"
+
+    ArticleUpdateRequest:
+      type: "object"
+      properties:
+        title:
+          type: "string"
+          minLength: 5
+          maxLength: 100
+        content:
+          type: "string"
+          minLength: 20
+        summary:
+          type: "string"
+          maxLength: 200
+        coverImage:
+          type: "string"
+        categoryIds:
+          type: "array"
+          items:
+            type: "integer"
+            format: "int64"
+          minItems: 1
+        status:
+          $ref: "#/components/schemas/ArticleStatusType"
+        tags:
+          type: "array"
+          items:
+            type: "string"
+
+    ArticleDetailDTO:
+      allOf:
+        - $ref: "#/components/schemas/BaseDTO"
+        - type: "object"
+          properties:
+            title:
+              type: "string"
+            content:
+              type: "string"
+            summary:
+              type: "string"
+            coverImage:
+              type: "string"
+            author:
+              $ref: "#/components/schemas/UserProfileDTO"
+            categories:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/CategoryDTO"
+            tags:
+              type: "array"
+              items:
+                type: "string"
+            status:
+              $ref: "#/components/schemas/ArticleStatusType"
+            likeCount:
+              type: "integer"
+              format: "int32"
+            favoriteCount:
+              type: "integer"
+              format: "int32"
+            commentCount:
+              type: "integer"
+              format: "int32"
+            isLiked:
+              type: "boolean"
+              description: "当前用户是否点赞"
+            isFavorite:
+              type: "boolean"
+              description: "当前用户是否收藏"
+
+    ArticleListItemDTO:
+      allOf:
+        - $ref: "#/components/schemas/BaseDTO"
+        - type: "object"
+          properties:
+            title:
+              type: "string"
+            summary:
+              type: "string"
+            coverImage:
+              type: "string"
+            author:
+              $ref: "#/components/schemas/UserProfileDTO"
+            categories:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/CategoryDTO"
+            likeCount:
+              type: "integer"
+              format: "int32"
+            commentCount:
+              type: "integer"
+              format: "int32"
+            favoriteCount:
+              type: "integer"
+              format: "int32"
+
+    # ==================== 分类模块 ====================
+    CategoryRequest:
+      type: "object"
+      required: [ "name" ]
+      properties:
+        name:
+          type: "string"
+          minLength: 2
+          maxLength: 20
+          description: "分类名称"
+        description:
+          type: "string"
+          description: "分类描述"
+        parentCategoryId:
+          type: "integer"
+          format: "int64"
+          description: "父分类ID"
+
+    CategoryDTO:
+      allOf:
+        - $ref: "#/components/schemas/BaseDTO"
+        - type: "object"
+          properties:
+            name:
+              type: "string"
+            description:
+              type: "string"
+            parentCategoryId:
+              type: "integer"
+              format: "int64"
+              nullable: true
+            parentCategoryName:
+              type: "string"
+            articleCount:
+              type: "integer"
+              format: "int32"
+            subCategories:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/CategoryDTO"
+
+    CategoryTreeDTO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        description:
+          type: "string"
+        articleCount:
+          type: "integer"
+          format: "int32"
+        children:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CategoryTreeDTO"
+
+    CategoryStatDTO:
+      type: "object"
+      properties:
+        categoryName:
+          type: "string"
+        articleCount:
+          type: "integer"
+          format: "int64"
+        percentage:
+          type: "number"
+          format: "double"
+
+    # ==================== 评论模块 ====================
+    CommentCreateRequest:
+      type: "object"
+      required: [ "content" ]
+      properties:
+        content:
+          type: "string"
+          minLength: 1
+          maxLength: 500
+          description: "评论内容"
+        parentCommentId:
+          type: "integer"
+          format: "int64"
+          description: "如果是回复，填父评论ID"
+
+    CommentDTO:
+      allOf:
+        - $ref: "#/components/schemas/BaseDTO"
+        - type: "object"
+          properties:
+            content:
+              type: "string"
+            commenter:
+              $ref: "#/components/schemas/UserProfileDTO"
+            articleId:
+              type: "integer"
+              format: "int64"
+            parentCommentId:
+              type: "integer"
+              format: "int64"
+              nullable: true
+            replyCount:
+              type: "integer"
+              format: "int32"
+            replies:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/CommentDTO"
+              description: "回复列表（懒加载）"
+            likeCount:
+              type: "integer"
+              format: "int32"
+            isLiked:
+              type: "boolean"
+
+    CommentReplyDTO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        content:
+          type: "string"
+        commenter:
+          $ref: "#/components/schemas/UserProfileDTO"
+        replyToUser:
+          $ref: "#/components/schemas/UserProfileDTO"
+          description: "回复给谁"
+        createdAt:
+          type: "string"
+          format: "date-time"
+
+    CommentBatchApprovalRequest:
+      type: "object"
+      required: [ "ids", "approved" ]
+      properties:
+        ids:
+          type: "array"
+          items:
+            type: "integer"
+            format: "int64"
+          description: "评论ID列表"
+        approved:
+          type: "boolean"
+          description: "审核状态：true=通过，false=不通过"
+
+    # ==================== 看板统计 ====================
+    DashboardStatsDTO:
+      type: "object"
+      properties:
+        userStats:
+          $ref: "#/components/schemas/UserStats"
+        articleStats:
+          $ref: "#/components/schemas/ArticleStats"
+        commentStats:
+          $ref: "#/components/schemas/CommentStats"
+        additionalMetrics:
+          type: "object"
+          additionalProperties:
+            type: "object"
+
+    UserStats:
+      type: "object"
+      properties:
+        totalUsers:
+          type: "integer"
+          format: "int64"
+        activeUsers:
+          type: "integer"
+          format: "int64"
+        newUsersToday:
+          type: "integer"
+          format: "int64"
+        newUsersThisMonth:
+          type: "integer"
+          format: "int64"
+
+    ArticleStats:
+      type: "object"
+      properties:
+        totalArticles:
+          type: "integer"
+          format: "int64"
+        publishedArticles:
+          type: "integer"
+          format: "int64"
+        draftArticles:
+          type: "integer"
+          format: "int64"
+        totalViews:
+          type: "integer"
+          format: "int64"
+        totalLikes:
+          type: "integer"
+          format: "int64"
+
+    CommentStats:
+      type: "object"
+      properties:
+        totalComments:
+          type: "integer"
+          format: "int64"
+        pendingComments:
+          type: "integer"
+          format: "int64"
+        approvedComments:
+          type: "integer"
+          format: "int64"
