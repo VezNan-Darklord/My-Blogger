@@ -2039,9 +2039,9 @@ components:
 
     UserLoginRequest:
       type: "object"
-      required: [ "loginId", "password" ]
+      required: [ "username", "password" ]
       properties:
-        loginId:
+        username:
           type: "string"
           description: "用户名/邮箱"
         password:

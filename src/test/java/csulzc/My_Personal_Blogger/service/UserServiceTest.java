@@ -94,7 +94,7 @@ public class UserServiceTest {
                 .build();
 
         loginRequest = UserLoginRequest.builder()
-                .loginId("testuser")
+                .username("testuser")
                 .password(VALID_PASSWORD)
                 .build();
 
@@ -250,7 +250,7 @@ public class UserServiceTest {
     void testLoginWithToken_WrongPassword() {
         // Given - 使用错误的密码
         UserLoginRequest wrongPasswordRequest = UserLoginRequest.builder()
-                .loginId("testuser")
+                .username("testuser")
                 .password("wrongpassword")
                 .build();
 
@@ -442,7 +442,7 @@ public class UserServiceTest {
         userService.changePassword(userId, oldPassword, newPassword);
 
         UserLoginRequest newLoginRequest = UserLoginRequest.builder()
-                .loginId("testuser")
+                .username("testuser")
                 .password(newPassword)
                 .build();
         LoginResponseDTO result = userService.loginWithToken(newLoginRequest);
@@ -500,7 +500,7 @@ public class UserServiceTest {
 
         // Then - 验证可以使用新密码登录
         UserLoginRequest newLoginRequest = UserLoginRequest.builder()
-                .loginId("testuser")
+                .username("testuser")
                 .password(newPassword)
                 .build();
         LoginResponseDTO result = userService.loginWithToken(newLoginRequest);

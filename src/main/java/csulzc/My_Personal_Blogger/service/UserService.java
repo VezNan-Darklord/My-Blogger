@@ -75,7 +75,7 @@ public class UserService {
      */
     @Transactional
     public LoginResponseDTO loginWithToken(UserLoginRequest request) {
-        User user = findUserByLoginId(request.getLoginId());
+        User user = findUserByLoginId(request.getUsername());
 
         // 验证密码
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {

@@ -9,7 +9,7 @@ import jakarta.validation.constraints.*;
 public class UserLoginRequest {
 
     @NotBlank(message = "用户名/邮箱不能为空")
-    private String loginId;  // 可以是用户名或邮箱
+    private String username;  // 可以是用户名或邮箱
 
     @NotBlank(message = "密码不能为空")
     private String password;
