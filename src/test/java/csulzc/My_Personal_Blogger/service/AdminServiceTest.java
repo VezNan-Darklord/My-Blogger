@@ -199,7 +199,7 @@ public class AdminServiceTest {
         entityManager.persist(comment1);
 
         Comment comment2 = Comment.builder()
-                .content("这是一条很长的评论内容，用于测试超过五十个字符时的截断功能，需要确保长度足够...")
+                .content("Omniscience: Cost 4(3). Choose a card in your draw pile. Play it twice and Exhaust it. Exhaust...")
                 .commenter(user2)
                 .article(article1)
                 .isApproved(true)
@@ -235,14 +235,16 @@ public class AdminServiceTest {
         List<Map<String, Object>> recentComments = (List<Map<String, Object>>) recentActivity.get("recentComments");
         assertThat(recentComments).hasSize(2);
 
-        // 验证评论截断：长评论应被截断并以 "..." 结尾
-        String longCommentContent = (String) recentComments.get(0).get("content");
-        assertThat(longCommentContent).endsWith("...");
-        assertThat(longCommentContent.length()).isLessThanOrEqualTo(53); // 50 + "..."
-
-        // 验证短评论未被截断
-        String shortCommentContent = (String) recentComments.get(1).get("content");
-        assertThat(shortCommentContent).doesNotEndWith("...");
+        // 验证评论截断：由于两条评论 createdAt 可能相同，排序顺序不确定，故不依赖索引位置
+        List<String> commentContents = recentComments.stream()
+                .map(m -> (String) m.get("content"))
+                .toList();
+        // 长评论（超过50字符）应被截断并以 "..." 结尾
+        assertThat(commentContents).anyMatch(c -> c.endsWith("..."));
+        assertThat(commentContents.stream().filter(c -> c.endsWith("...")).findFirst().orElseThrow().length())
+                .isLessThanOrEqualTo(53); // 50 + "..."
+        // 短评论（不超过50字符）不应被截断
+        assertThat(commentContents).anyMatch(c -> !c.endsWith("..."));
     }
 
     @Test
@@ -283,8 +285,13 @@ public class AdminServiceTest {
                 .build();
         entityManager.persist(article);
 
+        // 50字符（26个中文字符 + 24个大写字母）
+        String exact50Content = "这是一段恰好五十个字符长度的评论用于测试截断边界功能ABCDEFGHIJKLMNOPQRSTUVWX";
+        // 51字符（26个中文字符 + 25个大写字母）
+        String over50Content = "这是一段恰好五十个字符长度的评论用于测试截断边界功能ABCDEFGHIJKLMNOPQRSTUVWXY";
+
         Comment commentExact50 = Comment.builder()
-                .content("这是一段恰好五十个字符长度的评论内容用于边界测试")
+                .content(exact50Content)
                 .commenter(testUser)
                 .article(article)
                 .isApproved(true)
@@ -292,7 +299,7 @@ public class AdminServiceTest {
         entityManager.persist(commentExact50);
 
         Comment comment51 = Comment.builder()
-                .content("这是一段超过五十个字符长度的评论内容用于测试截断边界情况...")
+                .content(over50Content)
                 .commenter(testUser)
                 .article(article)
                 .isApproved(true)
@@ -312,12 +319,24 @@ public class AdminServiceTest {
         List<Map<String, Object>> recentComments = (List<Map<String, Object>>) recentActivity.get("recentComments");
         assertThat(recentComments).hasSize(2);
 
-        // 51字符的评论应被截断
-        String truncatedComment = (String) recentComments.get(0).get("content");
-        assertThat(truncatedComment).endsWith("...");
+        // createdAt 可能相同，排序不确定，故不依赖索引位置
+        List<String> contents = recentComments.stream()
+                .map(m -> (String) m.get("content"))
+                .toList();
 
-        // 50字符的评论不应被截断
-        String exactComment = (String) recentComments.get(1).get("content");
-        assertThat(exactComment).doesNotEndWith("...");
+        // 51字符的评论应被截断为 "前50字符 + ..."
+        assertThat(contents).anyMatch(c -> c.endsWith("..."));
+        String truncatedContent = contents.stream()
+                .filter(c -> c.endsWith("..."))
+                .findFirst().orElseThrow();
+        assertThat(truncatedContent).isEqualTo(over50Content.substring(0, 50) + "...");
+
+        // 50字符的评论不应被截断（原始内容不足50字符 -> 50字符为边界，>50才截断）
+        assertThat(contents).anyMatch(c -> !c.endsWith("..."));
+        String exactComment = contents.stream()
+                .filter(c -> !c.endsWith("..."))
+                .findFirst().orElseThrow();
+        assertThat(exactComment).isEqualTo(exact50Content);
     }
+
 }
