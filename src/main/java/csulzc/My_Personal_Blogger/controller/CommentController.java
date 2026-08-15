@@ -141,7 +141,7 @@ public class CommentController {
 
     @PostMapping("/batch/delete")
     @Operation(summary = "批量删除评论", description = "需要管理员权限")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Integer>> batchDeleteComments(
             @Valid @RequestBody BatchIdRequest request) {
         if (request.getIds() == null || request.getIds().isEmpty()) {
@@ -153,7 +153,7 @@ public class CommentController {
 
     @PostMapping("/batch/approve")
     @Operation(summary = "批量审核评论", description = "需要管理员权限")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Integer>> batchApproveComments(
             @Valid @RequestBody CommentBatchApprovalRequest request) {
         if (request.getIds() == null || request.getIds().isEmpty()) {

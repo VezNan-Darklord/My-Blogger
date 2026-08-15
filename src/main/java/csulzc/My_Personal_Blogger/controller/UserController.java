@@ -77,6 +77,7 @@ public class UserController {
      * 获取用户详情（通过ID）
      */
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<UserDetailDTO>> getUserDetail(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -123,6 +124,7 @@ public class UserController {
      * 更新用户信息
      */
     @PutMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<UserDetailDTO>> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UserUpdateRequest request) {
@@ -148,6 +150,7 @@ public class UserController {
      * 修改密码
      */
     @PostMapping("/{userId}/change-password")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> changePassword(
             @PathVariable Long userId,
             @Valid @RequestBody UserPasswordChangeRequest request) {
@@ -170,6 +173,7 @@ public class UserController {
      * 获取用户活动统计
      */
     @GetMapping("/{userId}/activity")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<UserActivityDTO>> getUserActivity(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -185,6 +189,7 @@ public class UserController {
      * @param sortBy 排序字段
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<PageResponseDTO<UserProfileDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -294,6 +299,7 @@ public class UserController {
      * 获取活跃用户数
      */
     @GetMapping("/stats/active")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Long>> countActiveUsers() {
         long count = userService.countActiveUsers();
         return ResponseEntity.ok(Result.success(count));
@@ -303,6 +309,7 @@ public class UserController {
      * 获取总用户数
      */
     @GetMapping("/stats/total")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Long>> getTotalUserCount() {
         long count = userService.getTotalUserCount();
         return ResponseEntity.ok(Result.success(count));
@@ -312,6 +319,7 @@ public class UserController {
      * 获取最近活跃用户列表
      */
     @GetMapping("/stats/recently-active")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<List<UserActivityDTO>>> getRecentlyActiveUsers(
             @RequestParam(defaultValue = "10") int limit) {
         if (limit <= 0 || limit > 50) {

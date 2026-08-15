@@ -45,7 +45,8 @@ public class FileController {
     }
 
     @GetMapping("/{fileName}")
-    @Operation(summary = "下载文件", description = "根据文件名下载或访问文件（公开访问）")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "下载文件", description = "根据文件名下载或访问文件")
     public ResponseEntity<Resource> downloadFile(
             @Parameter(description = "文件名") @PathVariable String fileName) {
         Resource resource = fileStorageService.loadFileAsResource(fileName);
@@ -68,7 +69,8 @@ public class FileController {
     }
 
     @GetMapping("/{fileName}/base64")
-    @Operation(summary = "文件转Base64", description = "将指定文件转换为Base64编码字符串（公开访问）")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "文件转Base64", description = "将指定文件转换为Base64编码字符串（需要登录）")
     public ResponseEntity<Result<FileUploadResponse>> getFileAsBase64(
             @Parameter(description = "要转换的文件名") @PathVariable String fileName) {
         String base64Data = fileStorageService.encodeFileToBase64(fileName);

@@ -48,6 +48,8 @@ public class CategoryService {
             Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
                     .orElseThrow(() -> new EntityNotFoundException("父分类不存在"));
             categoryBuilder.parentCategory(parentCategory);
+        } else {
+            categoryBuilder.parentCategory(null);
         }
 
         Category category = categoryBuilder.build();
