@@ -167,6 +167,10 @@ public class UserService {
     public UserDetailDTO getUserDetail(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
+
+        // 校验当前登录用户是否为本人或管理员
+        securityContextUtil.validateOwnershipOrAdmin(userId, "用户信息");
+
         return convertToDetailDTO(user);
     }
 
@@ -206,6 +210,9 @@ public class UserService {
     public UserDetailDTO updateUser(Long userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
+
+        // 校验当前登录用户是否为本人或管理员
+        securityContextUtil.validateOwnershipOrAdmin(userId, "用户信息");
 
         // 更新字段
         if (StringUtils.hasText(request.getDisplayName())) {

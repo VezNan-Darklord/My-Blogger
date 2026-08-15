@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
@@ -115,5 +116,12 @@ public class GlobalExceptionHandler {
         log.error("事务超时: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Result.error(503, "操作超时，请稍后重试"));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<Void>> handleNoResourceFound(NoResourceFoundException e) {
+        log.warn("接口不存在: {} {}", e.getHttpMethod(), e.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(404, "请求的接口不存在: " + e.getResourcePath()));
     }
 }

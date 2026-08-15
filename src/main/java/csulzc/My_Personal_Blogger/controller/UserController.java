@@ -6,6 +6,7 @@ import csulzc.My_Personal_Blogger.api.dto.user.LoginResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,6 +25,8 @@ public class UserController {
     private final UserService userService;
 
     private final RequestSourceResolver requestSourceResolver;
+
+    private final SecurityContextUtil securityContextUtil;
 
     /**
      * 用户注册
@@ -83,6 +86,16 @@ public class UserController {
     }
 
     /**
+     * 获取当前登录用户个人信息（仅凭Token，无需传入用户ID）
+     */
+    @GetMapping("/me")
+    public ResponseEntity<Result<UserDetailDTO>> getMyInfo() {
+        Long currentUserId = securityContextUtil.getCurrentUserId();
+        UserDetailDTO user = userService.getUserDetail(currentUserId);
+        return ResponseEntity.ok(Result.success(user));
+    }
+
+    /**
      * 获取用户详情（通过用户名）
      */
     @GetMapping("/username/{username}")
@@ -121,6 +134,17 @@ public class UserController {
     }
 
     /**
+     * 修改当前登录用户个人信息（仅凭Token，无需传入用户ID）
+     */
+    @PutMapping("/me")
+    public ResponseEntity<Result<UserDetailDTO>> updateMyInfo(
+            @Valid @RequestBody UserUpdateRequest request) {
+        Long currentUserId = securityContextUtil.getCurrentUserId();
+        UserDetailDTO user = userService.updateUser(currentUserId, request);
+        return ResponseEntity.ok(Result.success(user, "更新成功"));
+    }
+
+    /**
      * 修改密码
      */
     @PostMapping("/{userId}/change-password")
@@ -131,6 +155,14 @@ public class UserController {
             throw new IllegalArgumentException("用户ID无效");
         }
         userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+        return ResponseEntity.ok(Result.success(null, "密码修改成功"));
+    }
+
+    @PostMapping("/me/change-password")
+    public ResponseEntity<Result<Void>> changeMyPassword(
+            @Valid @RequestBody UserPasswordChangeRequest request) {
+        Long currentUserId = securityContextUtil.getCurrentUserId();
+        userService.changePassword(currentUserId, request.getOldPassword(), request.getNewPassword());
         return ResponseEntity.ok(Result.success(null, "密码修改成功"));
     }
 

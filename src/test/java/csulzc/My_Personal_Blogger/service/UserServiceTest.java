@@ -129,6 +129,12 @@ public class UserServiceTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
+    private void setCurrentUser(Long userId) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     @Test
     @Order(1)
     @DisplayName("测试用户注册 - 成功")
@@ -953,6 +959,7 @@ public class UserServiceTest {
         assertEquals(User.UserRole.ADMIN, saved.getRole());
     }
 
+    // ... existing code ...
     @Test
     @Order(46)
     @DisplayName("测试用户注册 - 禁止创建SUPER_ADMIN")
@@ -967,5 +974,94 @@ public class UserServiceTest {
         assertThrows(IllegalArgumentException.class, () -> {
             userService.register(superAdminRequest, User.UserRole.SUPER_ADMIN);
         });
+    }
+
+    @Test
+    @Order(47)
+    @DisplayName("测试根据 ID 获取用户详情 - 无权限（非本人）")
+    void testGetUserDetail_NoPermission() {
+        // Given - 当前登录用户不是目标用户
+        setCurrentUser(999L);
+
+        // When & Then - 应该抛出安全异常
+        assertThrows(SecurityException.class, () -> {
+            userService.getUserDetail(testUserId);
+        });
+    }
+
+    @Test
+    @Order(48)
+    @DisplayName("测试更新用户信息 - 无权限（非本人）")
+    void testUpdateUser_NoPermission() {
+        // Given - 当前登录用户不是目标用户
+        setCurrentUser(999L);
+
+        // When & Then - 应该抛出安全异常
+        assertThrows(SecurityException.class, () -> {
+            userService.updateUser(testUserId, updateRequest);
+        });
+    }
+
+    @Test
+    @Order(49)
+    @DisplayName("测试根据 ID 获取用户详情 - 未登录")
+    void testGetUserDetail_NotLoggedIn() {
+        // Given - 清空安全上下文模拟未登录
+        SecurityContextHolder.clearContext();
+
+        // When & Then - 应该抛出安全异常
+        assertThrows(SecurityException.class, () -> {
+            userService.getUserDetail(testUserId);
+        });
+    }
+
+    @Test
+    @Order(50)
+    @DisplayName("测试根据 ID 获取用户详情 - 管理员可查看其他用户")
+    void testGetUserDetail_AdminCanViewOther() {
+        // Given - 创建其他用户并以管理员身份登录
+        User otherUser = User.builder()
+                .username("otheruser")
+                .email("other@example.com")
+                .passwordHash(passwordEncoder.encode(VALID_PASSWORD))
+                .displayName("其他用户")
+                .status(User.UserStatus.ACTIVE)
+                .role(User.UserRole.USER)
+                .build();
+        entityManager.persist(otherUser);
+        entityManager.flush();
+        setupAdminSecurityContext();
+
+        // When
+        UserDetailDTO result = userService.getUserDetail(otherUser.getId());
+
+        // Then
+        assertNotNull(result);
+        assertEquals("otheruser", result.getUsername());
+    }
+
+    @Test
+    @Order(51)
+    @DisplayName("测试更新用户信息 - 管理员可修改其他用户")
+    void testUpdateUser_AdminCanUpdateOther() {
+        // Given - 创建其他用户并以管理员身份登录
+        User otherUser = User.builder()
+                .username("otheruser")
+                .email("other@example.com")
+                .passwordHash(passwordEncoder.encode(VALID_PASSWORD))
+                .displayName("其他用户")
+                .status(User.UserStatus.ACTIVE)
+                .role(User.UserRole.USER)
+                .build();
+        entityManager.persist(otherUser);
+        entityManager.flush();
+        setupAdminSecurityContext();
+
+        // When
+        UserDetailDTO result = userService.updateUser(otherUser.getId(), updateRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("更新后的显示名称", result.getDisplayName());
     }
 }

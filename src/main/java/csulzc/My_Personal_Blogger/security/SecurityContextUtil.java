@@ -21,19 +21,15 @@ public class SecurityContextUtil {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("用户未登录");
+            throw new SecurityException("请先登录");
         }
 
         Object principal = authentication.getPrincipal();
-        if (principal == null) {
-            throw new IllegalStateException("无法获取用户身份信息");
-        }
-
         if (principal instanceof Long) {
             return (Long) principal;
         }
 
-        throw new IllegalStateException("无法获取当前用户ID");
+        throw new SecurityException("请先登录");
     }
 
     /**

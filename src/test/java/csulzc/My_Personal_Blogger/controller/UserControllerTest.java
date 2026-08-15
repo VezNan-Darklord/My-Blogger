@@ -7,6 +7,7 @@ import csulzc.My_Personal_Blogger.config.JwtProperties;
 import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
 import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
+import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +60,9 @@ class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private SecurityContextUtil securityContextUtil;
 
     private UserRegisterRequest registerRequest;
     private UserLoginRequest loginRequest;
@@ -780,5 +784,118 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest());
 
         then(userService).should(never()).register(any(UserRegisterRequest.class), any(User.UserRole.class));
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("测试获取当前登录用户信息 - 仅凭Token成功")
+    void testGetMyInfo_Success() throws Exception {
+        Long currentUserId = 1L;
+        given(securityContextUtil.getCurrentUserId()).willReturn(currentUserId);
+        given(userService.getUserDetail(eq(currentUserId))).willReturn(userDetailDTO);
+
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.username").value("testuser"));
+
+        then(userService).should().getUserDetail(eq(currentUserId));
+    }
+
+    @Test
+    @Order(43)
+    @DisplayName("测试获取当前登录用户信息 - 未登录")
+    void testGetMyInfo_NotLoggedIn() throws Exception {
+        given(securityContextUtil.getCurrentUserId())
+                .willThrow(new SecurityException("请先登录"));
+
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isForbidden());
+
+        then(userService).should(never()).getUserDetail(anyLong());
+    }
+    @Test
+    @Order(44)
+    @DisplayName("测试修改当前登录用户信息 - 仅凭Token成功")
+    void testUpdateMyInfo_Success() throws Exception {
+        Long currentUserId = 1L;
+        UserDetailDTO updatedUser = UserDetailDTO.builder()
+                .id(currentUserId)
+                .username("testuser")
+                .displayName("更新后的名称")
+                .bio("更新后的简介")
+                .avatar("https://example.com/new-avatar.jpg")
+                .status(csulzc.My_Personal_Blogger.domain.entity.User.UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        given(securityContextUtil.getCurrentUserId()).willReturn(currentUserId);
+        given(userService.updateUser(eq(currentUserId), any(UserUpdateRequest.class)))
+                .willReturn(updatedUser);
+
+        mockMvc.perform(put("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("更新成功"))
+                .andExpect(jsonPath("$.data.displayName").value("更新后的名称"));
+
+        then(userService).should().updateUser(eq(currentUserId), any(UserUpdateRequest.class));
+    }
+
+    @Test
+    @Order(45)
+    @DisplayName("测试修改当前登录用户信息 - 未登录")
+    void testUpdateMyInfo_NotLoggedIn() throws Exception {
+        given(securityContextUtil.getCurrentUserId())
+                .willThrow(new SecurityException("请先登录"));
+
+        mockMvc.perform(put("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isForbidden());
+
+        then(userService).should(never()).updateUser(anyLong(), any(UserUpdateRequest.class));
+    }
+
+    @Test
+    @Order(46)
+    @DisplayName("测试修改当前登录用户密码 - 仅凭Token成功")
+    void testChangeMyPassword_Success() throws Exception {
+        Long currentUserId = 1L;
+        given(securityContextUtil.getCurrentUserId()).willReturn(currentUserId);
+        doNothing().when(userService).changePassword(
+                eq(currentUserId),
+                eq(passwordChangeRequest.getOldPassword()),
+                eq(passwordChangeRequest.getNewPassword()));
+
+        mockMvc.perform(post("/api/users/me/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(passwordChangeRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("密码修改成功"));
+
+        then(userService).should().changePassword(
+                eq(currentUserId),
+                eq(passwordChangeRequest.getOldPassword()),
+                eq(passwordChangeRequest.getNewPassword()));
+    }
+
+    @Test
+    @Order(47)
+    @DisplayName("测试修改当前登录用户密码 - 未登录")
+    void testChangeMyPassword_NotLoggedIn() throws Exception {
+        given(securityContextUtil.getCurrentUserId())
+                .willThrow(new SecurityException("请先登录"));
+
+        mockMvc.perform(post("/api/users/me/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(passwordChangeRequest)))
+                .andExpect(status().isForbidden());
+
+        then(userService).should(never()).changePassword(anyLong(), anyString(), anyString());
     }
 }
