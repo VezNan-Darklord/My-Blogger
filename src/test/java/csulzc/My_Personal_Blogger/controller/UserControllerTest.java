@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import csulzc.My_Personal_Blogger.api.dto.common.PageResponseDTO;
 import csulzc.My_Personal_Blogger.api.dto.user.*;
 import csulzc.My_Personal_Blogger.config.JwtProperties;
+import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.security.JwtTokenProvider;
+import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
 import csulzc.My_Personal_Blogger.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(UserController.class)
 @DisplayName("UserController 测试")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import({UserControllerTest.TestSecurityConfig.class, JwtTokenProvider.class, JwtProperties.class})
+@Import({UserControllerTest.TestSecurityConfig.class, JwtTokenProvider.class, JwtProperties.class, RequestSourceResolver.class})
 class UserControllerTest {
 
     @TestConfiguration
@@ -77,7 +79,7 @@ class UserControllerTest {
                 .build();
 
         loginRequest = UserLoginRequest.builder()
-                .loginId("testuser")
+                .username("testuser")
                 .password("password123")
                 .build();
 
@@ -141,7 +143,7 @@ class UserControllerTest {
     @Order(1)
     @DisplayName("测试用户注册 - 成功")
     void testRegister_Success() throws Exception {
-        given(userService.register(any(UserRegisterRequest.class)))
+        given(userService.register(any(UserRegisterRequest.class), eq(User.UserRole.USER)))
                 .willReturn(userDetailDTO);
 
         mockMvc.perform(post("/api/users/register")
@@ -153,7 +155,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.username").value("testuser"))
                 .andExpect(jsonPath("$.data.email").value("test@example.com"));
 
-        then(userService).should().register(any(UserRegisterRequest.class));
+        then(userService).should().register(any(UserRegisterRequest.class), eq(User.UserRole.USER));
     }
 
     @Test
@@ -214,7 +216,7 @@ class UserControllerTest {
     @DisplayName("测试用户登录 - 参数验证失败")
     void testLogin_ValidationFailed() throws Exception {
         UserLoginRequest invalidRequest = UserLoginRequest.builder()
-                .loginId("")
+                .username("")
                 .password("password123")
                 .build();
 
@@ -716,5 +718,67 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/stats/recently-active")
                         .param("limit", "-1"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("测试用户注册 - 前端请求强制USER权限（即使请求体指定ADMIN）")
+    void testRegister_FromFrontend_ForcesUserRole() throws Exception {
+        UserRegisterRequest adminRequest = UserRegisterRequest.builder()
+                .username("adminrequest")
+                .email("adminrequest@example.com")
+                .password("password123")
+                .role(User.UserRole.ADMIN)
+                .build();
+
+        mockMvc.perform(post("/api/users/register")
+                        .header("Origin", "http://localhost:5173")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adminRequest)))
+                .andExpect(status().isOk());
+
+        then(userService).should().register(any(UserRegisterRequest.class), eq(User.UserRole.USER));
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("测试用户注册 - Apifox请求可指定ADMIN权限")
+    void testRegister_FromApifox_AdminRole() throws Exception {
+        given(userService.register(any(UserRegisterRequest.class), eq(User.UserRole.ADMIN)))
+                .willReturn(userDetailDTO);
+
+        UserRegisterRequest adminRequest = UserRegisterRequest.builder()
+                .username("adminrequest")
+                .email("adminrequest@example.com")
+                .password("password123")
+                .role(User.UserRole.ADMIN)
+                .build();
+
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adminRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("testuser"));
+
+        then(userService).should().register(any(UserRegisterRequest.class), eq(User.UserRole.ADMIN));
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("测试用户注册 - Apifox请求指定SUPER_ADMIN被拒绝")
+    void testRegister_FromApifox_SuperAdminRejected() throws Exception {
+        UserRegisterRequest superAdminRequest = UserRegisterRequest.builder()
+                .username("superadminrequest")
+                .email("superadmin@example.com")
+                .password("password123")
+                .role(User.UserRole.SUPER_ADMIN)
+                .build();
+
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(superAdminRequest)))
+                .andExpect(status().isBadRequest());
+
+        then(userService).should(never()).register(any(UserRegisterRequest.class), any(User.UserRole.class));
     }
 }

@@ -1,5 +1,6 @@
 package csulzc.My_Personal_Blogger.api.dto.user;
 
+import csulzc.My_Personal_Blogger.domain.entity.User;
 import lombok.Data;
 import lombok.Builder;
 import jakarta.validation.constraints.*;
@@ -26,4 +27,7 @@ public class UserRegisterRequest {
 
     @Size(max = 50, message = "显示名称不能超过50个字符")
     private String displayName;
+
+    @Builder.Default
+    private User.UserRole role = User.UserRole.USER;
 }

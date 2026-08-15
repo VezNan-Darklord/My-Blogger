@@ -19,6 +19,7 @@ public class UserDetailDTO extends BaseDTO {
     private String avatar;
     private String bio;
     private User.UserStatus status;
+    private User.UserRole role;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

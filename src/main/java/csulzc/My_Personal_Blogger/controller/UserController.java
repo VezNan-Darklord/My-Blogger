@@ -5,7 +5,9 @@ import csulzc.My_Personal_Blogger.api.dto.user.*;
 import csulzc.My_Personal_Blogger.api.dto.user.LoginResponseDTO;
 import csulzc.My_Personal_Blogger.api.response.Result;
 import csulzc.My_Personal_Blogger.domain.entity.User;
+import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
 import csulzc.My_Personal_Blogger.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +23,31 @@ public class UserController {
 
     private final UserService userService;
 
+    private final RequestSourceResolver requestSourceResolver;
+
     /**
      * 用户注册
      */
     @PostMapping("/register")
     public ResponseEntity<Result<UserDetailDTO>> register(
-            @Valid @RequestBody UserRegisterRequest request) {
-        UserDetailDTO user = userService.register(request);
+            @Valid @RequestBody UserRegisterRequest request,
+            HttpServletRequest httpRequest) {
+        User.UserRole role = resolveRegisterRole(request, httpRequest);
+        UserDetailDTO user = userService.register(request, role);
         return ResponseEntity.ok(Result.success(user, "注册成功"));
+    }
+
+    private User.UserRole resolveRegisterRole(UserRegisterRequest request, HttpServletRequest httpRequest) {
+        // 前端请求：强制为 USER 权限，忽略请求体中的角色
+        if (requestSourceResolver.isFromFrontend(httpRequest)) {
+            return User.UserRole.USER;
+        }
+        // Apifox 等 API 客户端：允许 USER 或 ADMIN
+        User.UserRole role = request.getRole() != null ? request.getRole() : User.UserRole.USER;
+        if (role == User.UserRole.SUPER_ADMIN) {
+            throw new IllegalArgumentException("注册接口不允许创建超级管理员");
+        }
+        return role;
     }
 
     /**

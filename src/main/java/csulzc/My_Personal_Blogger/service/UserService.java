@@ -45,7 +45,7 @@ public class UserService {
      * 用户注册
      */
     @Transactional
-    public UserDetailDTO register(UserRegisterRequest request) {
+    public UserDetailDTO register(UserRegisterRequest request, User.UserRole role) {
         passwordValidator.validate(request.getPassword());
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -56,6 +56,12 @@ public class UserService {
             throw new IllegalArgumentException("邮箱已被注册");
         }
 
+        User.UserRole registerRole = role != null ? role : User.UserRole.USER;
+        if (registerRole == User.UserRole.SUPER_ADMIN) {
+            throw new IllegalArgumentException("注册接口不允许创建超级管理员");
+        }
+
+
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -64,6 +70,7 @@ public class UserService {
                         ? request.getDisplayName()
                         : request.getUsername())
                 .status(User.UserStatus.ACTIVE)
+                .role(registerRole)
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -529,6 +536,7 @@ public class UserService {
                 .avatar(user.getAvatar())
                 .bio(user.getBio())
                 .status(user.getStatus())
+                .role(user.getRole())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

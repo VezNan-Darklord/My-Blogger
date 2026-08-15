@@ -1,5 +1,6 @@
 package csulzc.My_Personal_Blogger.config;
 
+import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -18,15 +19,7 @@ public class CorsConfig {
 
         config.setAllowCredentials(true);
 
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "http://localhost:5173",
-                "http://localhost:8080",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173",
-                "https://your-frontend-domain.com"
-        ));
+        config.setAllowedOriginPatterns(RequestSourceResolver.FRONTEND_ORIGINS);
 
         config.setAllowedMethods(Arrays.asList(
                 "GET",

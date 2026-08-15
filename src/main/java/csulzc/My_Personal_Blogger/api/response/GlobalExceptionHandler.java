@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -72,6 +73,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(Result.error(400, message));
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("请求体解析失败: {}", e.getMessage());
+        return ResponseEntity.badRequest()
+                .body(Result.error(400, "请求体格式错误，请检查 JSON 或字段取值"));
+    }
+
 
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Result<Void>> handleSecurityException(SecurityException e) {

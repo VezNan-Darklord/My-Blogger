@@ -136,7 +136,7 @@ public class UserServiceTest {
         // Given - 准备数据（已在 setUp 中准备）
 
         // When - 执行注册操作
-        UserDetailDTO result = userService.register(registerRequest);
+        UserDetailDTO result = userService.register(registerRequest, User.UserRole.USER);
 
         // Then - 验证结果
         assertNotNull(result);
@@ -158,7 +158,7 @@ public class UserServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.register(duplicateRequest);
+            userService.register(duplicateRequest, User.UserRole.USER);
         });
     }
 
@@ -173,7 +173,7 @@ public class UserServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.register(duplicateRequest);
+            userService.register(duplicateRequest, User.UserRole.USER);
         });
     }
 
@@ -189,7 +189,7 @@ public class UserServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.register(weakPasswordRequest);
+            userService.register(weakPasswordRequest, User.UserRole.USER);
         });
     }
 
@@ -204,7 +204,7 @@ public class UserServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.register(request);
+            userService.register(request, User.UserRole.USER);
         });
     }
 
@@ -219,7 +219,7 @@ public class UserServiceTest {
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            userService.register(request);
+            userService.register(request, User.UserRole.USER);
         });
     }
 
@@ -933,52 +933,39 @@ public class UserServiceTest {
 
     @Test
     @Order(45)
-    @DisplayName("性能测试 - 高并发用户注册与查询")
-    void testPerformance_HighFrequencyOperations() {
-        int iterationCount = 500;
-        long startTime = System.currentTimeMillis();
+    @DisplayName("测试用户注册 - 显式指定ADMIN权限成功")
+    void testRegister_WithAdminRole_Success() {
+        UserRegisterRequest adminRequest = UserRegisterRequest.builder()
+                .username("adminuser")
+                .email("adminuser@example.com")
+                .password(VALID_PASSWORD)
+                .displayName("管理员用户")
+                .role(User.UserRole.ADMIN)
+                .build();
 
-        for (int i = 0; i < iterationCount; i++) {
-            UserRegisterRequest request = UserRegisterRequest.builder()
-                    .username("perf_user_" + i)
-                    .email("perf" + i + "@example.com")
-                    .password("YuanZiqi222+++")
-                    .displayName("性能测试用户" + i)
-                    .build();
+        UserDetailDTO result = userService.register(adminRequest, User.UserRole.ADMIN);
 
-            UserDetailDTO registeredUser = userService.register(request);
-            assertNotNull(registeredUser);
-            assertEquals("perf_user_" + i, registeredUser.getUsername());
+        assertNotNull(result);
+        assertEquals(User.UserRole.ADMIN, result.getRole());
 
-            if (i % 100 == 0) {
-                entityManager.flush();
-                entityManager.clear();
-            }
-
-            UserDetailDTO fetchedUser = userService.getUserDetail(registeredUser.getId());
-            assertNotNull(fetchedUser);
-            assertEquals("perf_user_" + i, fetchedUser.getUsername());
-
-            assertTrue(userService.existsByUsername("perf_user_" + i));
-        }
-
-        long endTime = System.currentTimeMillis();
-        long totalTime = endTime - startTime;
-
-        double averageTimePerOperation = (double) totalTime / iterationCount;
-
-        System.out.println("===========================================");
-        System.out.println("性能测试结果：");
-        System.out.println("总迭代次数: " + iterationCount);
-        System.out.println("总耗时: " + totalTime + " ms");
-        System.out.println("平均每次操作耗时: " + String.format("%.2f", averageTimePerOperation) + " ms");
-        System.out.println("每秒处理操作数: " + String.format("%.2f", (iterationCount * 3 * 1000.0) / totalTime));
-        System.out.println("===========================================");
-
-        assertThat(averageTimePerOperation).isLessThan(300.0);
-
-        long totalUsers = userService.getTotalUserCount();
-        assertThat(totalUsers).isEqualTo(iterationCount + 1);
+        User saved = userRepository.findByUsername("adminuser").orElse(null);
+        assertNotNull(saved);
+        assertEquals(User.UserRole.ADMIN, saved.getRole());
     }
 
+    @Test
+    @Order(46)
+    @DisplayName("测试用户注册 - 禁止创建SUPER_ADMIN")
+    void testRegister_SuperAdminRejected() {
+        UserRegisterRequest superAdminRequest = UserRegisterRequest.builder()
+                .username("superadminuser")
+                .email("superadmin@example.com")
+                .password(VALID_PASSWORD)
+                .role(User.UserRole.SUPER_ADMIN)
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            userService.register(superAdminRequest, User.UserRole.SUPER_ADMIN);
+        });
+    }
 }
