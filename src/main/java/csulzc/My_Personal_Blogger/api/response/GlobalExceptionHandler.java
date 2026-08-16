@@ -82,7 +82,6 @@ public class GlobalExceptionHandler {
                 .body(Result.error(400, "请求体格式错误，请检查 JSON 或字段取值"));
     }
 
-
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Result<Void>> handleSecurityException(SecurityException e) {
         log.warn("安全异常: {}", e.getMessage());

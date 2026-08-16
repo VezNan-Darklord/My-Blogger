@@ -8,6 +8,8 @@ import csulzc.My_Personal_Blogger.domain.entity.User;
 import csulzc.My_Personal_Blogger.security.RequestSourceResolver;
 import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import csulzc.My_Personal_Blogger.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "用户管理", description = "用户认证及信息管理")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -29,9 +32,10 @@ public class UserController {
     private final SecurityContextUtil securityContextUtil;
 
     /**
-     * 用户注册
+     * 用户注册或创建
      */
     @PostMapping("/register")
+    @Operation(summary = "用户注册或创建", description = "前端仅限普通用户，管理员须由Apifox创建")
     public ResponseEntity<Result<UserDetailDTO>> register(
             @Valid @RequestBody UserRegisterRequest request,
             HttpServletRequest httpRequest) {
@@ -40,6 +44,9 @@ public class UserController {
         return ResponseEntity.ok(Result.success(user, "注册成功"));
     }
 
+    /**
+     * 私有辅助方法：注册权限过滤
+     */
     private User.UserRole resolveRegisterRole(UserRegisterRequest request, HttpServletRequest httpRequest) {
         // 前端请求：强制为 USER 权限，忽略请求体中的角色
         if (requestSourceResolver.isFromFrontend(httpRequest)) {
@@ -57,6 +64,7 @@ public class UserController {
      * 用户登录(返回Token)
      */
     @PostMapping("/login")
+    @Operation(summary = "用户登录", description = "返回Token")
     public ResponseEntity<Result<LoginResponseDTO>> login(
             @Valid @RequestBody UserLoginRequest request) {
         LoginResponseDTO response = userService.loginWithToken(request);
@@ -67,6 +75,7 @@ public class UserController {
      * 刷新Token
      */
     @PostMapping("/refresh")
+    @Operation(summary = "刷新Token", description = "返回新的Token")
     public ResponseEntity<Result<LoginResponseDTO>> refreshToken(
             @RequestParam String refreshToken) {
         LoginResponseDTO response = userService.refreshToken(refreshToken);
@@ -76,6 +85,7 @@ public class UserController {
     /**
      * 获取用户详情（通过ID）
      */
+    @Operation(summary = "获取用户详情", description = "通过用户ID获取用户详情")
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<UserDetailDTO>> getUserDetail(@PathVariable Long userId) {
@@ -89,6 +99,7 @@ public class UserController {
     /**
      * 获取当前登录用户个人信息（仅凭Token，无需传入用户ID）
      */
+    @Operation(summary = "获取当前登录用户个人信息", description = "仅凭Token，无需手动传入用户ID")
     @GetMapping("/me")
     public ResponseEntity<Result<UserDetailDTO>> getMyInfo() {
         Long currentUserId = securityContextUtil.getCurrentUserId();
@@ -100,6 +111,7 @@ public class UserController {
      * 获取用户详情（通过用户名）
      */
     @GetMapping("/username/{username}")
+    @Operation(summary = "获取用户详情", description = "通过用户名获取用户详情")
     public ResponseEntity<Result<UserDetailDTO>> getUserDetailByUsername(@PathVariable String username) {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("用户名不能为空");
@@ -111,6 +123,7 @@ public class UserController {
     /**
      * 获取用户公开资料
      */
+    @Operation(summary = "获取用户公开资料", description = "通过用户ID获取用户公开资料")
     @GetMapping("/{userId}/profile")
     public ResponseEntity<Result<UserProfileDTO>> getUserProfile(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
@@ -125,6 +138,7 @@ public class UserController {
      */
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "更新用户信息", description = "通过用户ID更新用户信息")
     public ResponseEntity<Result<UserDetailDTO>> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UserUpdateRequest request) {
@@ -139,6 +153,7 @@ public class UserController {
      * 修改当前登录用户个人信息（仅凭Token，无需传入用户ID）
      */
     @PutMapping("/me")
+    @Operation(summary = "修改当前登录用户个人信息", description = "仅凭Token，无需手动传入用户ID")
     public ResponseEntity<Result<UserDetailDTO>> updateMyInfo(
             @Valid @RequestBody UserUpdateRequest request) {
         Long currentUserId = securityContextUtil.getCurrentUserId();
@@ -149,6 +164,7 @@ public class UserController {
     /**
      * 修改密码
      */
+    @Operation(summary = "修改密码", description = "通过用户ID修改密码")
     @PostMapping("/{userId}/change-password")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> changePassword(
@@ -161,6 +177,7 @@ public class UserController {
         return ResponseEntity.ok(Result.success(null, "密码修改成功"));
     }
 
+    @Operation(summary = "修改密码", description = "仅凭Token，无需手动传入用户ID")
     @PostMapping("/me/change-password")
     public ResponseEntity<Result<Void>> changeMyPassword(
             @Valid @RequestBody UserPasswordChangeRequest request) {
@@ -174,6 +191,7 @@ public class UserController {
      */
     @GetMapping("/{userId}/activity")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "获取用户活动统计", description = "通过用户ID获取用户活动统计")
     public ResponseEntity<Result<UserActivityDTO>> getUserActivity(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -190,6 +208,7 @@ public class UserController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "获取所有用户", description = "分页获取所有用户")
     public ResponseEntity<Result<PageResponseDTO<UserProfileDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -211,6 +230,7 @@ public class UserController {
      * @param size 每页大小
      */
     @GetMapping("/search")
+    @Operation(summary = "搜索用户", description = "通过关键词搜索用户")
     public ResponseEntity<Result<PageResponseDTO<UserProfileDTO>>> searchUsers(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -232,6 +252,7 @@ public class UserController {
      * 启用用户（管理员功能）
      */
     @PostMapping("/{userId}/activate")
+    @Operation(summary = "启用用户", description = "通过用户ID启用用户")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> activateUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
@@ -245,6 +266,7 @@ public class UserController {
      * 禁用用户（管理员功能）
      */
     @PostMapping("/{userId}/deactivate")
+    @Operation(summary = "禁用用户", description = "通过用户ID禁用用户")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> deactivateUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
@@ -259,6 +281,7 @@ public class UserController {
      */
     @PostMapping("/{userId}/lock")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "锁定用户", description = "通过用户ID锁定用户")
     public ResponseEntity<Result<Void>> lockUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -272,6 +295,7 @@ public class UserController {
      */
     @PostMapping("/{userId}/unlock")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "解锁用户", description = "通过用户ID解锁用户")
     public ResponseEntity<Result<Void>> unlockUser(@PathVariable Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID无效");
@@ -285,6 +309,7 @@ public class UserController {
      */
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "删除用户", description = "通过用户ID删除用户")
     public ResponseEntity<Result<Void>> deleteUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "true") boolean softDelete) {
@@ -299,6 +324,7 @@ public class UserController {
      * 获取活跃用户数
      */
     @GetMapping("/stats/active")
+    @Operation(summary = "获取活跃用户数", description = "获取当前活跃的用户数")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Long>> countActiveUsers() {
         long count = userService.countActiveUsers();
@@ -308,6 +334,7 @@ public class UserController {
     /**
      * 获取总用户数
      */
+    @Operation(summary = "获取总用户数", description = "获取系统的总用户数")
     @GetMapping("/stats/total")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Long>> getTotalUserCount() {
@@ -318,6 +345,7 @@ public class UserController {
     /**
      * 获取最近活跃用户列表
      */
+    @Operation(summary = "获取最近活跃用户列表", description = "获取最近活跃的用户列表")
     @GetMapping("/stats/recently-active")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<List<UserActivityDTO>>> getRecentlyActiveUsers(
