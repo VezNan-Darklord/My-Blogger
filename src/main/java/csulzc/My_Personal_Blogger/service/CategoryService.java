@@ -7,6 +7,8 @@ import csulzc.My_Personal_Blogger.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +33,7 @@ public class CategoryService {
     /**
      * 创建分类
      */
+    @CacheEvict(cacheNames = "category:list", allEntries = true)
     @Transactional(timeout = 30)
     public CategoryDTO createCategory(CategoryRequest request) {
         // 检查分类名称是否已存在
@@ -61,6 +64,7 @@ public class CategoryService {
     /**
      * 更新分类信息
      */
+    @CacheEvict(cacheNames = "category:detail", key = "#categoryId")
     @Transactional(timeout = 30)
     public CategoryDTO updateCategory(Long categoryId, CategoryRequest request) {
         Category category = categoryRepository.findById(categoryId)
@@ -105,6 +109,7 @@ public class CategoryService {
     /**
      * 根据 ID 获取分类详情
      */
+    @Cacheable(cacheNames = "category:detail", key = "#categoryId")
     public CategoryDTO getCategoryById(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -114,6 +119,7 @@ public class CategoryService {
     /**
      * 根据名称获取分类
      */
+    @Cacheable(cacheNames = "category:detail", key = "#name")
     public CategoryDTO getCategoryByName(String name) {
         Category category = categoryRepository.findByName(name)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -123,6 +129,7 @@ public class CategoryService {
     /**
      * 获取所有顶级分类（没有父分类的分类）
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryDTO> getAllTopLevelCategories() {
         List<Category> categories = categoryRepository.findByParentCategoryIsNull();
         return categories.stream()
@@ -133,6 +140,7 @@ public class CategoryService {
     /**
      * 获取某个分类的所有子分类
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryDTO> getSubCategories(Long parentCategoryId) {
         Category parent = categoryRepository.findById(parentCategoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -145,6 +153,7 @@ public class CategoryService {
     /**
      * 分页查询所有分类
      */
+    @Cacheable(cacheNames = "category:list")
     public PageResponseDTO<CategoryDTO> getAllCategories(int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
         Page<Category> categoryPage = categoryRepository.findAll(pageable);
@@ -169,6 +178,7 @@ public class CategoryService {
     /**
      * 构建分类树（用于前端下拉树形选择器）
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryTreeDTO> buildCategoryTree() {
         List<Category> allCategories = categoryRepository.findAll();
 
@@ -212,6 +222,7 @@ public class CategoryService {
     /**
      * 获取分类的完整路径（从根到当前分类）
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryDTO> getCategoryPath(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -232,6 +243,7 @@ public class CategoryService {
     /**
      * 获取所有分类及其文章数量
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryStatDTO> getCategoryStatistics() {
         List<Object[]> results = categoryRepository.findAllWithArticleCount();
 
@@ -253,6 +265,7 @@ public class CategoryService {
     /**
      * 计算分类的文章数量（包含子分类的文章）
      */
+    @Cacheable(cacheNames = "category:list")
     public long countArticlesInCategoryIncludingSubCategories(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
@@ -286,6 +299,7 @@ public class CategoryService {
     /**
      * 获取分类的文章占比统计
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryStatDTO> getCategoryPercentageStats() {
         List<CategoryStatDTO> stats = getCategoryStatistics();
 
@@ -310,6 +324,7 @@ public class CategoryService {
     /**
      * 删除分类（如果分类下有文章或子分类，则不允许删除）
      */
+    @CacheEvict(cacheNames = "category:list", key = "#categoryId")
     @Transactional(timeout = 30)
     public void deleteCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
@@ -343,6 +358,7 @@ public class CategoryService {
     /**
      * 删除分类并转移文章到指定分类
      */
+    @CacheEvict(cacheNames = "category:list", key = "#categoryId")
     @Transactional(timeout = 30)
     public void deleteCategoryAndTransferArticles(Long categoryId, Long targetCategoryId) {
         Category sourceCategory = categoryRepository.findById(categoryId)
@@ -388,6 +404,7 @@ public class CategoryService {
     /**
      * 搜索分类（根据名称或描述）
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryDTO> searchCategories(String keyword) {
         if (!StringUtils.hasText(keyword)) {
             return new ArrayList<>();
@@ -406,6 +423,7 @@ public class CategoryService {
     /**
      * 获取有文章的分类列表
      */
+    @Cacheable(cacheNames = "category:list")
     public List<CategoryDTO> getCategoriesWithArticles() {
         return categoryRepository.findAll().stream()
                 .filter(c -> !c.getArticles().isEmpty())
@@ -465,6 +483,7 @@ public class CategoryService {
     /**
      * 检查分类名称是否存在（排除指定 ID）
      */
+    @Cacheable(cacheNames = "category:list")
     public boolean existsByName(String name, Long excludeId) {
         return categoryRepository.findByName(name)
                 .filter(c -> !c.getId().equals(excludeId))
@@ -474,6 +493,7 @@ public class CategoryService {
     /**
      * 检查分类名称是否存在
      */
+    @Cacheable(cacheNames = "category:list")
     public boolean existsByName(String name) {
         return categoryRepository.findByName(name).isPresent();
     }
@@ -481,6 +501,7 @@ public class CategoryService {
     /**
      * 获取分类总数
      */
+    @Cacheable(cacheNames = "category:list")
     public long getTotalCategoryCount() {
         return categoryRepository.count();
     }
@@ -488,6 +509,7 @@ public class CategoryService {
     /**
      * 获取顶级分类数量
      */
+    @Cacheable(cacheNames = "category:list")
     public long getTopLevelCategoryCount() {
         return categoryRepository.findByParentCategoryIsNull().size();
     }

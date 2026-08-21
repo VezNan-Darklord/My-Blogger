@@ -54,6 +54,17 @@
 			<scope>runtime</scope>
 		</dependency>
 
+        <!-- Redis 缓存 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- Lettuce 连接池（使用 lettuce.pool 配置时需要） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
 		<!-- 开发工具 -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

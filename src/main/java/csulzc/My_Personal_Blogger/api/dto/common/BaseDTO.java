@@ -2,6 +2,8 @@ package csulzc.My_Personal_Blogger.api.dto.common;
 
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,6 +11,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public abstract class BaseDTO {
     private Long id;
     private LocalDateTime createdAt;

@@ -1,6 +1,7 @@
 package csulzc.My_Personal_Blogger.api.dto.category;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
  */
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public class CategoryTreeDTO {
     private Long id;
     private String name;

@@ -8,6 +8,8 @@ import csulzc.My_Personal_Blogger.domain.entity.*;
 import csulzc.My_Personal_Blogger.repository.*;
 import csulzc.My_Personal_Blogger.security.SecurityContextUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class ArticleService {
     /**
      * 创建文章
      */
+    @CacheEvict(cacheNames = "article:list", allEntries = true)
     @Transactional(timeout = 30)
     public ArticleDetailDTO createArticle(@Valid ArticleCreateRequest request) {
         User author = securityContextUtil.getCurrentUserAndValidateStatus();
@@ -66,6 +69,7 @@ public class ArticleService {
     /**
      * 更新文章
      */
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 30)
     public ArticleDetailDTO updateArticle(Long articleId, @Valid ArticleUpdateRequest request) {
         Article article = articleRepository.findById(articleId)
@@ -119,6 +123,7 @@ public class ArticleService {
     /**
      * 发布文章（将状态改为 RELEASE）
      */
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 30)
     public ArticleDetailDTO publishArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
@@ -139,6 +144,7 @@ public class ArticleService {
     /**
      * 归档文章
      */
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 30)
     public ArticleDetailDTO archiveArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
@@ -159,6 +165,7 @@ public class ArticleService {
     /**
      * 根据 ID 获取文章详情
      */
+    @Cacheable(cacheNames = "article:detail", key = "#articleId")
     public ArticleDetailDTO getArticleById(Long articleId) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
@@ -169,6 +176,7 @@ public class ArticleService {
     /**
      * 获取文章列表（分页）
      */
+    @Cacheable(cacheNames = "article:list", key = "#pageable")
     public PageResponseDTO<ArticleListItemDTO> getArticleList(Pageable pageable) {
         Page<Article> articlePage = articleRepository.findAll(pageable);
         
@@ -188,6 +196,7 @@ public class ArticleService {
     /**
      * 根据作者获取文章列表
      */
+    @Cacheable(cacheNames = "article:list", key = "#author.id + #pageable")
     public PageResponseDTO<ArticleListItemDTO> getArticlesByAuthor(User author, Pageable pageable) {
         Page<Article> articlePage = articleRepository.findByAuthor(author, pageable);
         
@@ -226,6 +235,7 @@ public class ArticleService {
     /**
      * 删除文章
      */
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 30)
     public void deleteArticle(Long articleId) {
         Article article = articleRepository.findById(articleId)
@@ -240,6 +250,7 @@ public class ArticleService {
         articleRepository.delete(article);
     }
 
+    @CacheEvict(cacheNames = "article:list", allEntries = true)
     @Transactional(timeout = 120)
     public int batchDeleteArticles(List<Long> articleIds) {
         if (articleIds == null || articleIds.isEmpty()) {
@@ -248,6 +259,7 @@ public class ArticleService {
         return articleRepository.batchDeleteByIds(articleIds);
     }
 
+    @CacheEvict(cacheNames = "article:list", allEntries = true)
     @Transactional(timeout = 60)
     public int batchPublishArticles(List<Long> articleIds) {
         if (articleIds == null || articleIds.isEmpty()) {
@@ -256,6 +268,7 @@ public class ArticleService {
         return articleRepository.batchUpdateStatus(articleIds, Article.ArticleStatus.RELEASE);
     }
 
+    @CacheEvict(cacheNames = "article:list", allEntries = true)
     @Transactional(timeout = 60)
     public int batchArchiveArticles(List<Long> articleIds) {
         if (articleIds == null || articleIds.isEmpty()) {
@@ -264,11 +277,13 @@ public class ArticleService {
         return articleRepository.batchUpdateStatus(articleIds, Article.ArticleStatus.ARCHIVE);
     }
 
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 10)
     public void likeArticle(Long articleId) {
         articleRepository.incrementLikeCount(articleId);
     }
 
+    @CacheEvict(cacheNames = "article:detail", key = "#articleId")
     @Transactional(timeout = 10)
     public void viewArticle(Long articleId) {
         articleRepository.incrementViewCount(articleId);
