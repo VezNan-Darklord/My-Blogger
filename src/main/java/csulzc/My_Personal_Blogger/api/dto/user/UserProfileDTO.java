@@ -2,11 +2,14 @@ package csulzc.My_Personal_Blogger.api.dto.user;
 
 import lombok.Data;
 import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
 @Data
-@Builder
+@SuperBuilder
+@NoArgsConstructor
 public class UserProfileDTO {
     private Long id;
     private String username;

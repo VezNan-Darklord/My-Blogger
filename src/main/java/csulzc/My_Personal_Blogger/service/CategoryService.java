@@ -33,7 +33,7 @@ public class CategoryService {
     /**
      * 创建分类
      */
-    @CacheEvict(cacheNames = "category:list", allEntries = true)
+    @CacheEvict(cacheNames = {"category:list", "category:tree"}, allEntries = true)
     @Transactional(timeout = 30)
     public CategoryDTO createCategory(CategoryRequest request) {
         // 检查分类名称是否已存在
@@ -64,7 +64,7 @@ public class CategoryService {
     /**
      * 更新分类信息
      */
-    @CacheEvict(cacheNames = "category:detail", key = "#categoryId")
+    @CacheEvict(cacheNames = {"category:detail", "category:tree", "category:list"}, allEntries = true)
     @Transactional(timeout = 30)
     public CategoryDTO updateCategory(Long categoryId, CategoryRequest request) {
         Category category = categoryRepository.findById(categoryId)
@@ -178,7 +178,7 @@ public class CategoryService {
     /**
      * 构建分类树（用于前端下拉树形选择器）
      */
-    @Cacheable(cacheNames = "category:list")
+    @Cacheable(cacheNames = "category:tree")
     public List<CategoryTreeDTO> buildCategoryTree() {
         List<Category> allCategories = categoryRepository.findAll();
 
@@ -324,7 +324,7 @@ public class CategoryService {
     /**
      * 删除分类（如果分类下有文章或子分类，则不允许删除）
      */
-    @CacheEvict(cacheNames = "category:list", key = "#categoryId")
+    @CacheEvict(cacheNames = {"category:list", "category:tree"}, allEntries = true)
     @Transactional(timeout = 30)
     public void deleteCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
@@ -358,7 +358,7 @@ public class CategoryService {
     /**
      * 删除分类并转移文章到指定分类
      */
-    @CacheEvict(cacheNames = "category:list", key = "#categoryId")
+    @CacheEvict(cacheNames = {"category:list", "category:tree"}, allEntries = true)
     @Transactional(timeout = 30)
     public void deleteCategoryAndTransferArticles(Long categoryId, Long targetCategoryId) {
         Category sourceCategory = categoryRepository.findById(categoryId)

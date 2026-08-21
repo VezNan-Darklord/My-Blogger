@@ -1,5 +1,6 @@
 package csulzc.My_Personal_Blogger.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -44,6 +45,8 @@ public class RedisConfig {
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultConfig)
+                .withCacheConfiguration("category:list",
+                        defaultConfig.entryTtl(Duration.ofHours(1)))
                 .withCacheConfiguration("category:tree",
                         defaultConfig.entryTtl(Duration.ofHours(1)))
                 .withCacheConfiguration("category:stats",
@@ -56,6 +59,13 @@ public class RedisConfig {
         // 支持 LocalDateTime 等 JSR-310 类型
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 关键：显式激活默认类型（@class 属性）。
+        // GenericJackson2JsonRedisSerializer(ObjectMapper) 构造器不会自动配置 default typing，
+        // 不激活则反序列化时无法恢复为原始 DTO 类型，会退化为 LinkedHashMap 并抛 ClassCastException
+        objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY);
         return new GenericJackson2JsonRedisSerializer(objectMapper);
     }
 }
