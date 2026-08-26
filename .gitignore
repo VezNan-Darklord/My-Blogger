@@ -33,3 +33,4 @@ build/
 /src/main/resources/application-dev.yml
 /src/main/resources/application-prod.yml
 /src/main/resources/db/migration/V1__create_production_indexes.sql
+/scratch.txt
