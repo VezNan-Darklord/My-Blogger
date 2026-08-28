@@ -138,7 +138,14 @@ mvn spring-boot:run
 | 监控 | — | Actuator + Prometheus |
 | 文件目录 | `./uploads` | `/var/www/uploads` |
 
-> ⚠️ 安全提醒：当前 `application.properties` 与 `application-dev.yml` 中提交了明文 JWT 密钥和数据库密码，正式开源 / 上生产前建议全部改为 `${ENV_VAR}` 占位符，并更新 `prod` 默认密钥。
+> 注意：
+> - 生产环境请务必修改 `application-prod.yml` 中的数据库账号密码，并开启 Flyway 迁移。
+> - 测试环境默认使用 H2 数据库。
+> - 请勿使用真实姓名、电话、地址等作为测试数据，可使用随机数据生成工具生成，或“宋江”“卢俊义”等熟知的虚构人物。
+> - 开发环境默认使用 MySQL，可修改 `application-dev.yml` 中的数据库配置。
+> - 请务必确认`./uploads`目录存在且具有写权限。
+> - 敏感字段请勿明文存储，可在开发环境下创建.env文件并将其加入.gitignore中。
+> - 生产和开发环境中禁止使用默认账号密码。
 
 ### 核心环境变量
 
