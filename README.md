@@ -224,7 +224,6 @@ src/main/java/csulzc/My_Personal_Blogger\
 |---|---|---|---|-----|
 | 管理员接口测试未覆盖 | Admin 模块仅部分测试，管理端未对外暴露 | 补齐 AdminController/AdminService 测试 | P1 | 计划中 |
 | 自动化接口测试脚本 | 目前依赖手工联调（Apifox），回归成本高 | 编写自动化接口测试脚本并接入 CI | P2 | 计划中 |
-| openapi.yaml 与代码同步 | 依赖 springdoc maven 插件在 integration-test 生成，日常需定期手动同步 | 将生成步骤纳入 CI 流水线 | P1 | 计划中 |
 
 ### **架构与技术演进**
 | 问题 | 现状与影响 | 解决规划 | 优先级 |
