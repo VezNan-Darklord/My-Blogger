@@ -171,9 +171,24 @@ mvn spring-boot:run
 
 ## 🧪 测试
 
-项目已覆盖Entity、Repository、Service、Controller、Security五层测试：
+项目已覆盖Entity、Repository、Service、Controller、Security五层测试，并新增**接口自动化集成测试**：
 - 测试环境使用 H2（`MODE=MySQL`）+ 独立配置 `application-test.properties`
 - 测试代码位于 `src/test/java/csulzc/My_Personal_Blogger/`
+
+### 接口自动化测试（端到端 HTTP 层）
+
+`ApiIntegrationTest`（`src/test/java/csulzc/My_Personal_Blogger/ApiIntegrationTest.java`）基于
+`@SpringBootTest(webEnvironment = RANDOM_PORT)` + `TestRestTemplate`，走真实的安全过滤器链（JWT 鉴权），
+覆盖用户注册/登录/刷新令牌、管理员权限、分类/文章/评论 CRUD 等核心业务流程，且已针对鉴权与业务规则做状态断言。
+
+运行方式（`test` Profile，使用 H2，无需本地 MySQL / Redis）：
+
+```bash
+mvn -Dtest=ApiIntegrationTest test
+```
+
+接入 CI：任意 Maven 项目/流水线执行上述命令即可；也可按需拆分到 `integration-test` 阶段，或扩展为按模块的多个测试类。
+运行前提与项目一致：JDK 23 + Maven。
 
 ---
 
@@ -223,7 +238,7 @@ src/main/java/csulzc/My_Personal_Blogger\
 | 问题 | 现状与影响 | 解决规划 | 优先级 | 状态  |
 |---|---|---|---|-----|
 | 管理员接口测试未覆盖 | Admin 模块仅部分测试，管理端未对外暴露 | 补齐 AdminController/AdminService 测试 | P1 | 计划中 |
-| 自动化接口测试脚本 | 目前依赖手工联调（Apifox），回归成本高 | 编写自动化接口测试脚本并接入 CI | P2 | 计划中 |
+| 自动化接口测试脚本 | 目前依赖手工联调（Apifox），回归成本高 | 已新增 `ApiIntegrationTest` 接口自动化脚本，待接入 CI | P2 | 脚本已编写，待接入 CI |
 
 ### **架构与技术演进**
 | 问题 | 现状与影响 | 解决规划 | 优先级 |

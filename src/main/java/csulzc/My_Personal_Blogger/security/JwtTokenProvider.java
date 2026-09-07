@@ -27,40 +27,19 @@ public class JwtTokenProvider {
      * 生成访问令牌
      */
     public String generateAccessToken(Long userId, String username, User.UserRole role, long expiration) {
-        return generateToken(userId, username, jwtProperties.getExpiration());
+        return generateToken(userId, username, role.name(), expiration);
     }
 
     /**
      * 生成刷新令牌
      */
     public String generateRefreshToken(Long userId, String username, User.UserRole role, long expiration) {
-        return generateToken(userId, username, jwtProperties.getRefreshExpiration());
+        return generateToken(userId, username, role.name(), expiration);
     }
 
     /**
-     * 生成令牌
+     * 生成令牌（携带角色）
      */
-    private String generateToken(Long userId, String username, long expiration) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("username", username);
-        claims.put("type", "access");
-
-        SecretKey key = getSigningKey();
-
-        return Jwts.builder()
-                .claims(claims)
-                .subject(username)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .notBefore(now)
-                .signWith(key)
-                .compact();
-    }
-
     public String generateToken(Long userId, String username, String role, long expiration)
     {
         Date now = new Date();
